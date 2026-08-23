@@ -1,0 +1,71 @@
+# Unity generated
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Builds / exports
+[Bb]uild/
+[Bb]uilds/
+Exports/
+CharacterPipelineOutput/
+Gravity Half Dead_BurstDebugInformation_DoNotShip/
+GravityHalfDead_BackUpThisFolder_ButDontShipItWithYourGame/
+
+# Android build files
+*.apk
+*.aab
+
+# Unity / IDE generated
+*.csproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+.vs/
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# Gradle
+.gradle/
+
+# Downloaded Google package archives
+GooglePackages/
+
+# PRIVATE Firebase credentials
+*serviceAccount*.json
+*service-account*.json
+firebase-key.json
+
+# Local / generated tooling
+.freebuff/
+.plastic/
+.utmp/
+
+# Firebase generated cache
+.firebase/
+
+# Firebase Functions dependencies
+functions/node_modules/
+
+# Local debug screenshots
+error-ui.png
+exec-*.png
+
+# Local config
+ignore.conf

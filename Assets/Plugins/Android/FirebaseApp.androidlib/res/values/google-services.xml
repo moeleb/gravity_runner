@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@string/gcm_defaultSenderId,@string/google_storage_bucket,@string/project_id,@string/google_api_key,@string/google_crash_reporting_api_key,@string/google_app_id,@string/default_android_client_id,@string/default_web_client_id">
+  <string name="gcm_defaultSenderId" translatable="false">33771789204</string>
+  <string name="google_storage_bucket" translatable="false">gravity-half-dead.firebasestorage.app</string>
+  <string name="project_id" translatable="false">gravity-half-dead</string>
+  <string name="google_api_key" translatable="false">AIzaSyCirT8mQSW5i_OeZ0tWLmFYbQarhrNGUSE</string>
+  <string name="google_crash_reporting_api_key" translatable="false">AIzaSyCirT8mQSW5i_OeZ0tWLmFYbQarhrNGUSE</string>
+  <string name="google_app_id" translatable="false">1:33771789204:android:67c7f57152fda3219d4d81</string>
+  <string name="default_android_client_id" translatable="false">33771789204-mh5rhla4j9jhul1fa4oa3smj4oif7qtl.apps.googleusercontent.com</string>
+  <string name="default_web_client_id" translatable="false">33771789204-fh28a5cl9nfuhmppg9jin0b1komukibn.apps.googleusercontent.com</string>
+</resources>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <application>
+    <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
+    <activity
+      android:name="com.unity3d.player.UnityPlayerGameActivity"
+      android:theme="@style/BaseUnityGameActivityTheme"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+      <meta-data android:name="unityplayer.UnityActivity" android:value="true" />
+      <meta-data android:name="android.app.lib_name" android:value="game" />
+    </activity>
+
+    <activity
+      android:name="com.facebook.unity.FBUnityLoginActivity"
+      android:configChanges="fontScale|keyboard|keyboardHidden|locale|mnc|mcc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|touchscreen"
+      android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+    <activity
+      android:name="com.mkanfani.gravityhalfdead.SupportImagePickerActivity"
+      android:exported="false"
+      android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+    <service
+      android:name="com.mkanfani.gravityhalfdead.GravityMessagingService"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="com.google.firebase.MESSAGING_EVENT" />
+      </intent-filter>
+    </service>
+    <activity
+      android:name="com.facebook.unity.FBUnitySSOActivity"
+      android:configChanges="fontScale|keyboard|keyboardHidden|locale|mnc|mcc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|touchscreen"
+      android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+    <activity
+      android:name="com.facebook.unity.FBUnityDialogsActivity"
+      android:configChanges="fontScale|keyboard|keyboardHidden|locale|mnc|mcc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|touchscreen"
+      android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+    <activity
+      android:name="com.facebook.unity.FBUnityGamingServicesFriendFinderActivity"
+      android:configChanges="fontScale|keyboard|keyboardHidden|locale|mnc|mcc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|touchscreen"
+      android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+    <activity android:name="com.facebook.unity.FBUnityAppLinkActivity" android:exported="true" />
+    <activity android:name="com.facebook.unity.FBUnityDeepLinkingActivity" android:exported="true" />
+    <activity android:name="com.facebook.unity.FBUnityGameRequestActivity" />
+
+    <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="fb1029206673440587" />
+    <meta-data android:name="com.facebook.sdk.ClientToken" android:value="dcf690e7e2f9a39318a7e2b822aac529" />
+    <meta-data android:name="com.facebook.sdk.AutoLogAppEventsEnabled" android:value="true" />
+    <meta-data android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled" android:value="true" />
+
+    <provider
+      android:name="com.facebook.FacebookContentProvider"
+      android:authorities="com.facebook.app.FacebookContentProvider1029206673440587"
+      android:exported="true" />
+  </application>
+</manifest>

@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "33771789204",
+    "project_id": "gravity-half-dead",
+    "storage_bucket": "gravity-half-dead.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:33771789204:android:67c7f57152fda3219d4d81",
+        "android_client_info": {
+          "package_name": "com.mkanfani.gravityhalfdead"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "33771789204-mh5rhla4j9jhul1fa4oa3smj4oif7qtl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mkanfani.gravityhalfdead",
+            "certificate_hash": "70cb354948b14c0a5df86c5ec29221f42356db1d"
+          }
+        },
+        {
+          "client_id": "33771789204-fh28a5cl9nfuhmppg9jin0b1komukibn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCirT8mQSW5i_OeZ0tWLmFYbQarhrNGUSE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "33771789204-fh28a5cl9nfuhmppg9jin0b1komukibn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "33771789204-v81nao3031umjunq5akc9ovo2gcqn7rr.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mkanfani.gravityhalfdead"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
