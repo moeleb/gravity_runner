@@ -284,54 +284,34 @@ namespace GravityHalfDead
 
         private void BuildTopGravityDisc(Transform parent)
         {
-            // The Disc is one complete compact control: icon well -> inventory -> plus.
-            // It sits slightly right of center so it never touches the left wallet capsule.
+            // A self-contained black capsule like the left wallet: Disc -> count -> green plus.
+            // The compact 170 px unit is placed at the midpoint of the free space between the
+            // fixed left wallet content and the right multiplier content. This remains separated
+            // even when the CanvasScaler produces a narrower local safe-area on tall phones.
             var discRoot = CreateCard("Top Gravity Disc inventory and Boosts shortcut", parent,
-                new Vector2(24f, 30f), new Vector2(218f, 82f),
-                Hex("061424"), 27);
-            var discRootImage = discRoot.GetComponent<Image>();
-            discRootImage.raycastTarget = false;
-            AddGraphicOutline(discRootImage, new Color(Cyan.r, Cyan.g, Cyan.b, 0.78f), 1.8f);
-            var discGlow = discRoot.AddComponent<Shadow>();
-            discGlow.effectColor = new Color(Cyan.r, Cyan.g, Cyan.b, 0.26f);
-            discGlow.effectDistance = new Vector2(0f, -3f);
-
-            var iconWell = CreateCard("Gravity Disc icon well", discRoot.transform,
-                new Vector2(-63f, 0f), new Vector2(90f, 64f), Hex("040E1E"), 22);
-            var iconWellImage = iconWell.GetComponent<Image>();
-            iconWellImage.raycastTarget = false;
-            AddGraphicOutline(iconWellImage,
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.55f), 1.2f);
-
-            var coreHalo = CreateCard("Gravity Disc cyan energy halo", iconWell.transform,
-                Vector2.zero, new Vector2(68f, 42f),
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.10f), 21);
-            coreHalo.GetComponent<Image>().raycastTarget = false;
+                new Vector2(76f, 30f), new Vector2(170f, 82f),
+                new Color(0.006f, 0.014f, 0.025f, 0.98f), 27);
+            discRoot.GetComponent<Image>().raycastTarget = false;
 
             gameGravityDiscAmountText = MakeText(discRoot.transform, "0", 36, FontStyle.Bold,
-                Color.white, new Vector2(16f, 0f), new Vector2(58f, 58f),
+                Color.white, new Vector2(-2f, 0f), new Vector2(34f, 58f),
                 TextAnchor.MiddleCenter, 0);
             gameGravityDiscAmountText.resizeTextForBestFit = true;
             gameGravityDiscAmountText.resizeTextMinSize = 23;
-            gameGravityDiscAmountText.resizeTextMaxSize = 36;
+            gameGravityDiscAmountText.resizeTextMaxSize = 34;
             AddGraphicOutline(gameGravityDiscAmountText, Hex("04101E"), 1.2f);
 
             var discObject = new GameObject("Gravity Disc inventory asset");
-            discObject.transform.SetParent(iconWell.transform, false);
+            discObject.transform.SetParent(discRoot.transform, false);
             var discRect = discObject.AddComponent<RectTransform>();
-            SetRect(discRect, Vector2.zero, new Vector2(84f, 56f));
+            SetRect(discRect, new Vector2(-50f, 0f), new Vector2(58f, 40f));
             var disc = discObject.AddComponent<RawImage>();
             disc.texture = Resources.Load<Texture2D>("UI/Shop/Boosters/gravity_disc_enhanced");
             disc.color = Color.white;
             disc.raycastTarget = false;
 
             BuildStorePlusButton(discRoot.transform, "Top Gravity Disc Boosts shortcut",
-                new Vector2(78f, 0f), OpenBoostsStore);
-
-            var energyRail = CreateCard("Gravity Disc lower energy rail", discRoot.transform,
-                new Vector2(-4f, -35f), new Vector2(150f, 3f),
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.68f), 2);
-            energyRail.GetComponent<Image>().raycastTarget = false;
+                new Vector2(52f, 0f), OpenBoostsStore);
 
             RefreshGravityDiscHeader();
         }

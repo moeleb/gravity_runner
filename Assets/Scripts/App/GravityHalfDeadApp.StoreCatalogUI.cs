@@ -9,21 +9,17 @@ namespace GravityHalfDead
     {
         private Transform storeCatalogGrid;
         private Text storeCatalogStatusText;
-        private Text storeCatalogBalanceText;
-        private Button storeCoinsFilterButton;
-        private Button storeCoresFilterButton;
-        private StoreCurrencyKind selectedStoreCurrency = StoreCurrencyKind.Coins;
 
         private void BuildStoreCatalogPage(Transform parent)
         {
-            var header = CreateCard("Store catalog header", parent, new Vector2(0f, 650f),
-                new Vector2(1080f, 330f), new Color(0.004f, 0.014f, 0.045f, 0.99f), 0);
+            var header = CreateCard("Store catalog header", parent, new Vector2(0f, 665f),
+                new Vector2(1080f, 250f), new Color(0.004f, 0.014f, 0.045f, 0.99f), 0);
             header.GetComponent<Image>().raycastTarget = false;
 
             BuildShopTitleWing(header.transform, -330f, false);
             BuildShopTitleWing(header.transform, 330f, true);
             var title = MakeText(header.transform, "STORE", 84, FontStyle.BoldAndItalic,
-                Color.white, new Vector2(0f, 73f), new Vector2(620f, 102f),
+                Color.white, new Vector2(0f, 50f), new Vector2(620f, 102f),
                 TextAnchor.MiddleCenter, 4);
             AddGraphicOutline(title, Hex("183E85"), 4f);
             var titleGlow = title.gameObject.AddComponent<Shadow>();
@@ -31,44 +27,17 @@ namespace GravityHalfDead
             titleGlow.effectDistance = new Vector2(0f, -7f);
 
             MakeText(header.transform, "POWER THE BREACH. KEEP THE RUN ALIVE.", 25,
-                FontStyle.Bold, Hex("A9EFFF"), new Vector2(0f, 8f),
+                FontStyle.Bold, Hex("A9EFFF"), new Vector2(0f, -16f),
                 new Vector2(760f, 42f), TextAnchor.MiddleCenter, 2);
-
-            var balance = CreateCard("Live Store wallet", header.transform, new Vector2(0f, -47f),
-                new Vector2(410f, 58f), Hex("07192C"), 18);
-            var balanceImage = balance.GetComponent<Image>();
-            balanceImage.raycastTarget = false;
-            AddGraphicOutline(balanceImage, new Color(Cyan.r, Cyan.g, Cyan.b, 0.72f), 1.7f);
-            storeCatalogBalanceText = MakeText(balance.transform, string.Empty, 24,
-                FontStyle.Bold, Color.white, Vector2.zero, new Vector2(380f, 52f),
-                TextAnchor.MiddleCenter, 1);
 
             storeCatalogStatusText = MakeText(header.transform,
                 "SYNCING CATALOG · PRICES FROM YOUR APP STORE", 16, FontStyle.Bold,
-                Hex("819AB9"), new Vector2(0f, -101f), new Vector2(880f, 30f),
+                Hex("819AB9"), new Vector2(0f, -72f), new Vector2(880f, 30f),
                 TextAnchor.MiddleCenter, 1);
 
-            BuildStoreCurrencyFilters(parent);
             BuildStoreCatalogScrollArea(parent);
             EnsureFallbackStoreOffers();
             RefreshStoreCatalogUI();
-        }
-
-        private void BuildStoreCurrencyFilters(Transform parent)
-        {
-            var filters = CreateCard("Store currency filters", parent, new Vector2(0f, 425f),
-                new Vector2(820f, 86f), Hex("040B18"), 26);
-            filters.GetComponent<Image>().raycastTarget = false;
-
-            storeCoinsFilterButton = MakeButton(filters.transform, "G  COINS",
-                new Vector2(-200f, 0f), new Vector2(390f, 68f), Hex("0C2645"),
-                Hex("FFD65A"), 27, () => SelectStoreCurrency(StoreCurrencyKind.Coins));
-            AddGraphicOutline(storeCoinsFilterButton.GetComponent<Image>(), Hex("F6A90F"), 1.7f);
-
-            storeCoresFilterButton = MakeButton(filters.transform, "◉  REVIVE CORES",
-                new Vector2(200f, 0f), new Vector2(390f, 68f), Hex("101842"),
-                Cyan, 27, () => SelectStoreCurrency(StoreCurrencyKind.GravityCore));
-            AddGraphicOutline(storeCoresFilterButton.GetComponent<Image>(), NeonPurple, 1.7f);
         }
 
         private void BuildStoreCatalogScrollArea(Transform parent)
@@ -79,7 +48,9 @@ namespace GravityHalfDead
             scrollRectTransform.anchorMin = Vector2.zero;
             scrollRectTransform.anchorMax = Vector2.one;
             scrollRectTransform.offsetMin = new Vector2(12f, 220f);
-            scrollRectTransform.offsetMax = new Vector2(-12f, -585f);
+            // With the wallet capsule and currency filters removed, the unified catalog can
+            // begin directly beneath the header and use the recovered vertical space.
+            scrollRectTransform.offsetMax = new Vector2(-12f, -410f);
             var scrollHit = scrollObject.AddComponent<Image>();
             scrollHit.color = new Color(1f, 1f, 1f, 0.001f);
 
@@ -122,28 +93,10 @@ namespace GravityHalfDead
             scroll.verticalNormalizedPosition = 1f;
         }
 
-        private void SelectStoreCurrency(StoreCurrencyKind currencyKind)
-        {
-            selectedStoreCurrency = currencyKind;
-            RefreshStoreCatalogUI();
-        }
-
         private void RefreshStoreCatalogUI()
         {
             if (storeCatalogGrid == null)
                 return;
-
-            RefreshStoreFilterButton(storeCoinsFilterButton,
-                selectedStoreCurrency == StoreCurrencyKind.Coins, Hex("F6A90F"));
-            RefreshStoreFilterButton(storeCoresFilterButton,
-                selectedStoreCurrency == StoreCurrencyKind.GravityCore, Cyan);
-
-            if (storeCatalogBalanceText != null)
-            {
-                storeCatalogBalanceText.text = selectedStoreCurrency == StoreCurrencyKind.Coins
-                    ? "G COINS  ·  " + Math.Max(0L, bootstrapState.Coins).ToString("N0")
-                    : "REVIVE CORES  ·  " + Math.Max(0L, bootstrapState.GravityCores).ToString("N0");
-            }
 
             if (storeCatalogStatusText != null)
             {
@@ -154,18 +107,6 @@ namespace GravityHalfDead
             }
 
             RebuildStoreCatalogGrid();
-        }
-
-        private static void RefreshStoreFilterButton(Button button, bool active, Color accent)
-        {
-            if (button == null)
-                return;
-            var image = button.GetComponent<Image>();
-            if (image != null)
-                image.color = active ? Color.Lerp(Hex("071225"), accent, 0.31f) : Hex("071225");
-            var label = button.GetComponentInChildren<Text>();
-            if (label != null)
-                label.color = active ? accent : Hex("8190A9");
         }
 
         private void RebuildStoreCatalogGrid()
@@ -180,7 +121,7 @@ namespace GravityHalfDead
                 Destroy(child);
             }
 
-            var visibleOffers = VisibleStoreOffers(selectedStoreCurrency);
+            var visibleOffers = VisibleStoreOffers();
             var rows = Mathf.Max(1, Mathf.CeilToInt(visibleOffers.Count / 3f));
             var contentRect = storeCatalogGrid.GetComponent<RectTransform>();
             contentRect.sizeDelta = new Vector2(0f, 36f + rows * 398f + (rows - 1) * 18f);

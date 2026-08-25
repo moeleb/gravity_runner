@@ -76,9 +76,11 @@ namespace GravityHalfDead
             };
         }
 
-        private List<StoreOffer> VisibleStoreOffers(StoreCurrencyKind currencyKind)
+        private List<StoreOffer> VisibleStoreOffers()
         {
-            return storeOffers.Where(offer => offer.Enabled && offer.CurrencyKind == currencyKind)
+            // Coins and revive cores intentionally share one continuous catalog. Firebase's
+            // sort_order remains the single source of truth for their display sequence.
+            return storeOffers.Where(offer => offer.Enabled)
                 .OrderBy(offer => offer.SortOrder)
                 .ThenBy(offer => offer.RewardAmount)
                 .ToList();

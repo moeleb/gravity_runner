@@ -208,7 +208,10 @@ namespace GravityHalfDead
             if (gameSectionCloseButton != null)
                 gameSectionCloseButton.gameObject.SetActive(showingMissions);
             if (topPlayerSummaryRoot != null)
-                topPlayerSummaryRoot.SetActive(!showingMissions && auth != null && auth.CurrentUser != null);
+                // Missions, ME and SHOP are full-screen sections. Keep the home-only avatar and
+                // high-score summary out of all three, then restore it from HideGameTab().
+                topPlayerSummaryRoot.SetActive(!showingFullScreenSection
+                                               && auth != null && auth.CurrentUser != null);
 
             if (tabName == "MISSIONS")
             {
@@ -273,8 +276,9 @@ namespace GravityHalfDead
 
         private void OpenStoreForCurrency(StoreCurrencyKind currencyKind)
         {
+            // Both resource plus buttons now open the same unified, scrollable catalog.
+            _ = currencyKind;
             ShowGameTab("SHOP");
-            selectedStoreCurrency = currencyKind;
             ShowShopSubPage(0);
             RefreshStoreCatalogUI();
         }
