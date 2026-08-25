@@ -60,6 +60,9 @@ firebase-key.json
 # Firebase generated cache
 .firebase/
 
+# Cloudflare Wrangler local account/cache data
+**/.wrangler/
+
 # Firebase Functions dependencies
 functions/node_modules/
 

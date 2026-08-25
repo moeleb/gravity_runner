@@ -91,15 +91,11 @@ namespace GravityHalfDead
         private Text countryResultCountText;
         private bool countryDropdownOpen;
 
-        // One texture atlas for every country flag (17 columns x 8 rows).
-        // This replaces the old 136 separate PNG loads.
-        private Texture2D countryFlagAtlasTexture;
-        private const int CountryFlagAtlasColumns = 17;
-        private const int CountryFlagCellWidth = 100;
-        private const int CountryFlagCellHeight = 68;
+        // Static local textures, one exact file per ISO country code. Keeping each flag separate prevents
+        // atlas UV rounding, neighbouring-cell bleed and partial/doubled flags on different GPU formats.
+        private readonly Dictionary<string, Texture2D> countryFlagTextures = new();
         private const int CountryFlagPixelWidth = 96;
         private const int CountryFlagPixelHeight = 64;
-        private const int CountryFlagPadding = 2;
 
         // ── Age step UI references ──────────────────────────────────────────
         private Slider ageStepSlider;
@@ -746,59 +742,23 @@ namespace GravityHalfDead
                 || (code == "CD" && query.Contains("congo"));
         }
 
-        private Texture2D LoadCountryFlagAtlas()
+        private Texture2D LoadCountryFlag(string countryCode)
         {
-            if (countryFlagAtlasTexture == null)
+            var normalizedCode = (countryCode ?? string.Empty).Trim().ToLowerInvariant();
+            if (normalizedCode.Length != 2)
+                return null;
+            if (countryFlagTextures.TryGetValue(normalizedCode, out var cached))
+                return cached;
+
+            var texture = Resources.Load<Texture2D>("UI/CountryFlags/" + normalizedCode);
+            if (texture != null)
             {
-                countryFlagAtlasTexture = Resources.Load<Texture2D>(
-                    "UI/CountryFlags/country_flags_atlas");
-                if (countryFlagAtlasTexture != null)
-                {
-                    countryFlagAtlasTexture.wrapMode = TextureWrapMode.Clamp;
-                    countryFlagAtlasTexture.filterMode = FilterMode.Point;
-                    countryFlagAtlasTexture.anisoLevel = 0;
-                }
+                texture.wrapMode = TextureWrapMode.Clamp;
+                texture.filterMode = FilterMode.Bilinear;
+                texture.anisoLevel = 0;
+                countryFlagTextures[normalizedCode] = texture;
             }
-            return countryFlagAtlasTexture;
-        }
-
-        private static bool TryGetCountryFlagUv(string countryCode, Texture2D atlas, out Rect uvRect)
-        {
-            uvRect = new Rect(0f, 0f, 1f, 1f);
-            if (atlas == null || string.IsNullOrEmpty(countryCode))
-                return false;
-
-            int index = -1;
-            for (int i = 0; i < Countries.Length; i++)
-            {
-                if (string.Equals(Countries[i].code, countryCode, StringComparison.OrdinalIgnoreCase))
-                {
-                    index = i;
-                    break;
-                }
-            }
-            if (index < 0)
-                return false;
-
-            int column = index % CountryFlagAtlasColumns;
-            int row = index / CountryFlagAtlasColumns;
-
-            // Atlas rows are written top-to-bottom, while Unity UV Y starts at the bottom.
-            // Pull the UVs inward by 1 pixel on every side so texture filtering never samples
-            // a neighbouring flag cell. This removes the "half flag / mixed flag" bleeding.
-            const float inset = 1f;
-            float left = column * CountryFlagCellWidth + CountryFlagPadding + inset;
-            float top = row * CountryFlagCellHeight + CountryFlagPadding + inset;
-            float sampledWidth = CountryFlagPixelWidth - inset * 2f;
-            float sampledHeight = CountryFlagPixelHeight - inset * 2f;
-
-            float x = left / atlas.width;
-            float y = 1f - ((top + sampledHeight) / atlas.height);
-            float width = sampledWidth / atlas.width;
-            float height = sampledHeight / atlas.height;
-
-            uvRect = new Rect(x, y, width, height);
-            return true;
+            return texture;
         }
 
         private void ApplyCountryFlag(RawImage image, Text fallback, string countryCode)
@@ -817,11 +777,11 @@ namespace GravityHalfDead
                 return;
             }
 
-            var atlas = LoadCountryFlagAtlas();
-            if (TryGetCountryFlagUv(countryCode, atlas, out var flagUv))
+            var flag = LoadCountryFlag(countryCode);
+            if (flag != null)
             {
-                image.texture = atlas;
-                image.uvRect = flagUv;
+                image.texture = flag;
+                image.uvRect = new Rect(0f, 0f, 1f, 1f);
                 image.gameObject.SetActive(true);
                 fallback.gameObject.SetActive(false);
             }

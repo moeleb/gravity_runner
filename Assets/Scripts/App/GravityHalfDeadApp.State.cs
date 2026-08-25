@@ -24,10 +24,13 @@ namespace GravityHalfDead
         private sealed class BootstrapState
         {
             public string PlayerId = "GHD-NEW";
+            public long GravityCores;
             public long Coins;
             public long CurrentChapter = 1;
             public long CurrentLevel = 1;
             public long EndlessHighScore;
+            public long ScoreMultiplier = 1L;
+            public long CompletedMissions;
             public long TotalPlaySeconds;
             public long MaxCoinsSingleRun;
             public long LifetimeCoinsCollected;
@@ -54,10 +57,12 @@ namespace GravityHalfDead
                 var state = new BootstrapState
                 {
                     PlayerId = StringValue(values, "player_id", "GHD-" + user.UserId[..Mathf.Min(6, user.UserId.Length)].ToUpperInvariant()),
+                    GravityCores = Math.Max(0L, LongValue(values, "gravity_cores", 0L)),
                     Coins = LongValue(values, "coins", 0),
                     CurrentChapter = LongValue(values, "current_chapter", 1),
                     CurrentLevel = LongValue(values, "current_level", 1),
                     EndlessHighScore = LongValue(values, "endless_high_score", 0),
+                    CompletedMissions = Math.Max(0L, LongValue(values, "completed_missions", 0L)),
                     TotalPlaySeconds = LongValue(values, "total_play_seconds", 0),
                     MaxCoinsSingleRun = LongValue(values, "max_coins_single_run", 0),
                     LifetimeCoinsCollected = LongValue(values, "lifetime_coins_collected", 0),
@@ -73,6 +78,7 @@ namespace GravityHalfDead
                     CountryCode = StringValue(values, "country_code", ""),
                     CountryName = StringValue(values, "country_name", "")
                 };
+                state.ScoreMultiplier = ScoreMultiplierForCompletedMissions(state.CompletedMissions);
                 ApplyUnlockedCharacters(state, values);
                 ApplyPowerupLevels(state, values);
                 if (!state.UnlockedCharacters.Contains(state.SelectedCharacter))
@@ -116,7 +122,7 @@ namespace GravityHalfDead
                 for (var i = 0; i < PowerupIds.Length; i++)
                 {
                     var level = LongValue(powerups, PowerupIds[i], 0L);
-                    state.PowerupLevels[i] = Mathf.Clamp((int)level, 0, 6);
+                    state.PowerupLevels[i] = Mathf.Clamp((int)level, 0, PowerupMaxLevel(i));
                 }
             }
         }

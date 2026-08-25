@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 #endif
 using Firebase;
 using Firebase.Auth;
+using Firebase.Database;
 using Firebase.Firestore;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -27,7 +28,13 @@ namespace GravityHalfDead
             if (dependencyStatus != DependencyStatus.Available)
                 throw new InvalidOperationException("Firebase dependencies are unavailable: " + dependencyStatus);
 
+            var firebaseApp = FirebaseApp.DefaultInstance;
             auth = FirebaseAuth.DefaultInstance;
+            // The project id is fixed by google-services.json. If the Realtime Database is
+            // created in a non-default region, only this URL needs to be changed.
+            realtimeDatabase = FirebaseDatabase.GetInstance(firebaseApp,
+                "https://gravity-half-dead-default-rtdb.firebaseio.com");
+            realtimeDatabase.SetPersistenceEnabled(true);
             firestore = FirebaseFirestore.DefaultInstance;
         }
 
@@ -98,11 +105,22 @@ namespace GravityHalfDead
             if (!playerData.ContainsKey("robot_shards")) loginUpdate["robot_shards"] = 0L;
             if (!playerData.ContainsKey("ice_shards")) loginUpdate["ice_shards"] = 0L;
             if (!playerData.ContainsKey("completed_runs")) loginUpdate["completed_runs"] = 0L;
+            if (!playerData.ContainsKey("completed_missions")) loginUpdate["completed_missions"] = 0L;
+            if (!playerData.ContainsKey("gravity_cores")) loginUpdate["gravity_cores"] = 0L;
+            var canonicalMultiplier = ScoreMultiplierForCompletedMissions(bootstrapState.CompletedMissions);
+            bootstrapState.ScoreMultiplier = canonicalMultiplier;
+            if (!playerData.ContainsKey("score_multiplier")
+                || DatabaseLong(playerData["score_multiplier"], 1L) != canonicalMultiplier)
+                loginUpdate["score_multiplier"] = canonicalMultiplier;
             if (!playerData.ContainsKey("consecutive_login_days")) loginUpdate["consecutive_login_days"] = 1L;
             if (!playerData.ContainsKey("has_made_purchase")) loginUpdate["has_made_purchase"] = false;
             if (!playerData.ContainsKey("unlocked_characters"))
                 loginUpdate["unlocked_characters"] = new List<object> { "nova" };
             if (!playerData.ContainsKey("powerups")) loginUpdate["powerups"] = PowerupDictionary();
+            if (!playerData.ContainsKey("booster_inventory"))
+                loginUpdate["booster_inventory"] = DefaultBoosterInventoryFirestoreMap();
+            if (!playerData.ContainsKey("daily_rewarded_ads"))
+                loginUpdate["daily_rewarded_ads"] = DefaultDailyAdsFirestoreMap();
 
             // Persist the country chosen during onboarding so it appears in the
             // Firestore player document even if the user navigates away before
@@ -141,6 +159,11 @@ namespace GravityHalfDead
             await Delay(420);
 
             PopulateGameScreen(user);
+            await StartPowerupRealtimeSyncAsync();
+            await StartCharacterRealtimeSyncAsync();
+            await StartShopRealtimeSyncAsync();
+            await StartMissionRealtimeSyncAsync();
+            StartHomePlayerFirestoreSync();
             await ShowScreenAsync("Game");
         }
 
@@ -159,9 +182,12 @@ namespace GravityHalfDead
                 { "age_confirmed", true },
                 { "age_group", PlayerPrefs.GetString(AgeGroupKey, "18_plus") },
                 { "coins", 0L },
+                { "gravity_cores", 0L },
                 { "current_chapter", 1L },
                 { "current_level", 1L },
                 { "endless_high_score", 0L },
+                { "score_multiplier", 1L },
+                { "completed_missions", 0L },
                 { "total_play_seconds", 0L },
                 { "max_coins_single_run", 0L },
                 { "lifetime_coins_collected", 0L },
@@ -180,9 +206,12 @@ namespace GravityHalfDead
                         { "speed_boost", 0L },
                         { "shield", 0L },
                         { "invulnerability", 0L },
-                        { "wall_walk", 0L }
+                        { "wall_walk", 0L },
+                        { "timezone", 0L }
                     }
                 },
+                { "booster_inventory", DefaultBoosterInventoryFirestoreMap() },
+                { "daily_rewarded_ads", DefaultDailyAdsFirestoreMap() },
                 { "remove_ads", false },
                 { "country_code", PlayerPrefs.GetString("ghd.country_code", "") },
                 { "country_name", PlayerPrefs.GetString("ghd.country_name", "") },
@@ -315,12 +344,20 @@ namespace GravityHalfDead
 
         public async void RecordRunStatistics(long score, long coinsCollected, float distanceMeters)
         {
+            var walletCoins = Math.Max(0L, coinsCollected);
             bootstrapState.EndlessHighScore = Math.Max(bootstrapState.EndlessHighScore, score);
             bootstrapState.MaxCoinsSingleRun = Math.Max(bootstrapState.MaxCoinsSingleRun, coinsCollected);
-            bootstrapState.LifetimeCoinsCollected += Math.Max(0L, coinsCollected);
+            bootstrapState.LifetimeCoinsCollected += walletCoins;
+            bootstrapState.Coins += walletCoins;
             bootstrapState.TotalDistanceMeters += Math.Max(0L, (long)Math.Round(distanceMeters));
             bootstrapState.CompletedRuns++;
             RefreshMeProfileUI();
+            RefreshPowerupUI();
+            RefreshHomeHeaderDynamicValues();
+            _ = AddRealtimeCoinsAsync(walletCoins);
+            _ = SetRealtimeHighScoreAsync(bootstrapState.EndlessHighScore);
+            ReportBasicRunMissionProgress(score, walletCoins,
+                Math.Max(0L, (long)Math.Round(distanceMeters)));
 
             if (firestore == null || auth == null || auth.CurrentUser == null)
                 return;
@@ -330,6 +367,7 @@ namespace GravityHalfDead
                     new Dictionary<string, object>
                     {
                         { "endless_high_score", bootstrapState.EndlessHighScore },
+                        { "coins", bootstrapState.Coins },
                         { "max_coins_single_run", bootstrapState.MaxCoinsSingleRun },
                         { "lifetime_coins_collected", bootstrapState.LifetimeCoinsCollected },
                         { "total_distance_meters", bootstrapState.TotalDistanceMeters },
@@ -367,6 +405,12 @@ namespace GravityHalfDead
 
         private void OnApplicationQuit()
         {
+            StopPowerupRealtimeSync();
+            StopCharacterRealtimeSync();
+            StopShopRealtimeSync();
+            StopMissionRealtimeSync();
+            StopHomePlayerFirestoreSync();
+            StopStoreCatalogSync();
             _ = SyncPendingPlaytimeAsync();
             _ = SyncSettingsToFirebaseAsync();
         }

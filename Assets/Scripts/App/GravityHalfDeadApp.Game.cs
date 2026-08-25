@@ -31,6 +31,10 @@ namespace GravityHalfDead
         private RectTransform tapToPlayRoot;
         private RectTransform[] tapToPlayLetters;
         private Vector2[] tapToPlayLetterBasePositions;
+        private GameObject topPlayerSummaryRoot;
+        private Text gameHighScoreValueText;
+        private Text gameMultiplierText;
+        private Text gameGravityDiscAmountText;
 
         private static readonly Color HomeSteel = Hex("10151E");
         private static readonly Color HomeSteelSoft = Hex("1D2734");
@@ -50,7 +54,7 @@ namespace GravityHalfDead
             HomeBlackHoleBackgroundController.Create(screen.transform);
 
             gameHomeRoot = BuildResponsiveHomeRoot(screen.transform);
-            BuildGameHeader(gameHomeRoot);
+            BuildGameHeader(gameHomeRoot, screen.transform);
             BuildTapToPlay(gameHomeRoot);
             BuildGameModeSelector(gameHomeRoot);
 
@@ -114,28 +118,38 @@ namespace GravityHalfDead
                 line.raycastTarget = false;
             }
         }
-        private void BuildGameHeader(Transform parent)
+        private void BuildGameHeader(Transform compositionParent, Transform safeScreenParent)
         {
             // Keep the black-hole wallpaper untouched. This HUD is just the top utility row.
             // No cyan horizontal border/rail is drawn around it.
             var utilityBarObject = new GameObject("Top utility HUD");
-            utilityBarObject.transform.SetParent(parent, false);
+            utilityBarObject.transform.SetParent(safeScreenParent, false);
             var utilityBarRect = utilityBarObject.AddComponent<RectTransform>();
-            SetRect(utilityBarRect, new Vector2(0f, 835f), new Vector2(1080f, 190f));
+            // Stretch across the real safe-area width and pin to its top. This bypasses the
+            // centered 9:16 composition's letterbox space on extra-tall phones.
+            utilityBarRect.anchorMin = new Vector2(0f, 1f);
+            utilityBarRect.anchorMax = new Vector2(1f, 1f);
+            utilityBarRect.pivot = new Vector2(0.5f, 1f);
+            utilityBarRect.anchoredPosition = Vector2.zero;
+            // A shorter bar keeps the HUD at the very top and gives full-screen sections
+            // breathing room instead of leaving a heavy empty strip below the resources.
+            utilityBarRect.sizeDelta = new Vector2(0f, 222f);
             var utilityBar = utilityBarObject.AddComponent<Image>();
             utilityBar.color = new Color(0.012f, 0.040f, 0.060f, 0.94f);
             utilityBar.raycastTarget = false;
 
-            BuildHardCodedPlayerAvatar(utilityBarObject.transform);
-            BuildTopCoinCluster(utilityBarObject.transform);
+            BuildTopResourceCluster(utilityBarObject.transform);
+            BuildTopGravityDisc(utilityBarObject.transform);
+            BuildTopMultiplier(utilityBarObject.transform);
             BuildHardCodedSettingsButton(utilityBarObject.transform);
+            BuildHardCodedPlayerAvatar(utilityBarObject.transform);
 
             // Restore the larger handwritten logo below the utility row.
             var titleFont = handwritingFont != null
                 ? handwritingFont
                 : ResolveHomeFont("Bangers", "Kalam", "Luckiest", "Comic");
 
-            var title = MakeText(parent, "GRAVITY:", 88, FontStyle.BoldAndItalic, Cream,
+            var title = MakeText(compositionParent, "GRAVITY:", 88, FontStyle.BoldAndItalic, Cream,
                 new Vector2(0f, 668f), new Vector2(760f, 122f), TextAnchor.MiddleCenter, 5);
             title.font = titleFont;
             var cyanShadow = title.gameObject.AddComponent<Shadow>();
@@ -145,7 +159,7 @@ namespace GravityHalfDead
             pinkShadow.effectColor = new Color(NeonPink.r, NeonPink.g, NeonPink.b, 0.80f);
             pinkShadow.effectDistance = new Vector2(5f, -4f);
 
-            var subtitle = MakeText(parent, "HALF DEAD", 43, FontStyle.BoldAndItalic, Hex("FF64DF"),
+            var subtitle = MakeText(compositionParent, "HALF DEAD", 43, FontStyle.BoldAndItalic, Hex("FF64DF"),
                 new Vector2(0f, 587f), new Vector2(590f, 66f), TextAnchor.MiddleCenter, 10);
             subtitle.font = titleFont;
             var subGlow = subtitle.gameObject.AddComponent<Shadow>();
@@ -153,38 +167,33 @@ namespace GravityHalfDead
             subGlow.effectDistance = new Vector2(3f, -3f);
 
             RefreshTopCoinCounter();
+            RefreshHomeHeaderDynamicValues();
         }
         private void BuildHardCodedPlayerAvatar(Transform parent)
         {
-            // Keep the avatar safely inside the left edge and make every visible part with
-            // CreateCard/MakeText, avoiding the old zero-size Centered Image issue.
-            var root = CreateCard("Top player avatar aura", parent, new Vector2(-405f, 0f),
-                new Vector2(142f, 142f), new Color(Cyan.r, Cyan.g, Cyan.b, 1f), 52);
-            var rootImage = root.GetComponent<Image>();
+            // Borderless signed-in account photo. The transparent root is only the touch target;
+            // the rounded mask crops the downloaded image without drawing a frame around it.
+            topPlayerSummaryRoot = new GameObject("Top signed-in player summary");
+            topPlayerSummaryRoot.transform.SetParent(parent, false);
+            var summaryRect = topPlayerSummaryRoot.AddComponent<RectTransform>();
+            SetRect(summaryRect, new Vector2(58f, -67f), new Vector2(86f, 86f));
+            summaryRect.anchorMin = new Vector2(0f, 0.5f);
+            summaryRect.anchorMax = new Vector2(0f, 0.5f);
+            var rootImage = topPlayerSummaryRoot.AddComponent<Image>();
+            rootImage.color = new Color(1f, 1f, 1f, 0.001f);
             rootImage.raycastTarget = true;
-            var button = root.AddComponent<Button>();
+            var button = topPlayerSummaryRoot.AddComponent<Button>();
             button.targetGraphic = rootImage;
             button.navigation = new Navigation { mode = Navigation.Mode.None };
             button.onClick.AddListener(OpenPlayerProfileOverlay);
 
-            var metalRing = CreateCard("Top avatar metal ring", root.transform, Vector2.zero,
-                new Vector2(128f, 128f), Hex("D5E8F3"), 48);
-            metalRing.GetComponent<Image>().raycastTarget = false;
-            var darkRing = CreateCard("Top avatar dark ring", metalRing.transform, Vector2.zero,
-                new Vector2(114f, 114f), Hex("07111F"), 45);
-            darkRing.GetComponent<Image>().raycastTarget = false;
-            var innerCyan = CreateCard("Top avatar inner cyan", darkRing.transform, Vector2.zero,
-                new Vector2(102f, 102f), new Color(Cyan.r, Cyan.g, Cyan.b, 0.90f), 42);
-            innerCyan.GetComponent<Image>().raycastTarget = false;
-
-            var maskObject = CreateCard("Top avatar portrait mask", innerCyan.transform, Vector2.zero,
-                new Vector2(88f, 88f), Hex("17273A"), 38);
+            var maskObject = CreateCard("Borderless account avatar mask", topPlayerSummaryRoot.transform,
+                Vector2.zero, new Vector2(82f, 82f), Color.white, 22);
             var maskImage = maskObject.GetComponent<Image>();
-            maskImage.color = Hex("1C3046");
             var mask = maskObject.AddComponent<Mask>();
-            mask.showMaskGraphic = true;
+            mask.showMaskGraphic = false;
 
-            var portraitObject = new GameObject("Player profile picture");
+            var portraitObject = new GameObject("Signed-in account avatar");
             portraitObject.transform.SetParent(maskObject.transform, false);
             var portraitRect = portraitObject.AddComponent<RectTransform>();
             Stretch(portraitRect);
@@ -192,147 +201,238 @@ namespace GravityHalfDead
             topPlayerAvatarImage.color = Color.white;
             topPlayerAvatarImage.raycastTarget = false;
 
-            topPlayerAvatarFallback = new GameObject("Top guest avatar fallback");
-            topPlayerAvatarFallback.transform.SetParent(maskObject.transform, false);
-            var fallbackRect = topPlayerAvatarFallback.AddComponent<RectTransform>();
-            Stretch(fallbackRect);
-            var guestHead = CreateCard("Guest avatar head", topPlayerAvatarFallback.transform,
-                new Vector2(0f, 18f), new Vector2(38f, 38f), Color.white, 19);
-            guestHead.GetComponent<Image>().raycastTarget = false;
-            var guestShoulders = CreateCard("Guest avatar shoulders", topPlayerAvatarFallback.transform,
-                new Vector2(0f, -28f), new Vector2(72f, 38f), Color.white, 19);
-            guestShoulders.GetComponent<Image>().raycastTarget = false;
-            var guestCore = CreateCard("Guest avatar cyan core", topPlayerAvatarFallback.transform,
-                new Vector2(0f, -5f), new Vector2(18f, 18f), Cyan, 9);
-            guestCore.GetComponent<Image>().raycastTarget = false;
+            topPlayerAvatarFallback = null;
+            topPlayerAvatarFrameImage = null;
 
-            // Bright brain badge like the earlier approved HUD.
-            var badge = CreateCard("Avatar brain badge", root.transform, new Vector2(-36f, 38f),
-                new Vector2(76f, 76f), Hex("080D2D"), 23);
-            badge.GetComponent<Image>().raycastTarget = false;
-            BuildProceduralBrainBadge(badge.transform);
-
-            var frameReceiver = new GameObject("Hidden selected frame receiver");
-            frameReceiver.transform.SetParent(root.transform, false);
-            var frameRect = frameReceiver.AddComponent<RectTransform>();
-            SetRect(frameRect, Vector2.zero, Vector2.one);
-            topPlayerAvatarFrameImage = frameReceiver.AddComponent<RawImage>();
-            topPlayerAvatarFrameImage.color = new Color(1f, 1f, 1f, 0f);
-            topPlayerAvatarFrameImage.raycastTarget = false;
+            var highScoreLabel = MakeText(topPlayerSummaryRoot.transform, "HIGH SCORE", 22,
+                FontStyle.Bold, Cream, new Vector2(142f, 18f), new Vector2(190f, 32f),
+                TextAnchor.MiddleLeft, 1);
+            highScoreLabel.gameObject.name = "Realtime high score label";
+            gameHighScoreValueText = MakeText(topPlayerSummaryRoot.transform, "0", 39,
+                FontStyle.Bold, Color.white, new Vector2(142f, -20f), new Vector2(190f, 48f),
+                TextAnchor.MiddleLeft, 0);
+            gameHighScoreValueText.gameObject.name = "Realtime high score value";
+            gameHighScoreValueText.resizeTextForBestFit = true;
+            gameHighScoreValueText.resizeTextMinSize = 27;
+            gameHighScoreValueText.resizeTextMaxSize = 39;
         }
-        private void BuildProceduralBrainBadge(Transform parent)
+        private void BuildTopResourceCluster(Transform parent)
         {
-            var white = Color.white;
-            var left = new[]
-            {
-                new Vector2(-11f, 12f), new Vector2(-16f, 0f), new Vector2(-11f, -12f)
-            };
-            var right = new[]
-            {
-                new Vector2(11f, 12f), new Vector2(16f, 0f), new Vector2(11f, -12f)
-            };
+            // One relaxed left-to-right resource capsule:
+            // revive icon -> revive amount -> G Coin -> coin amount -> Store plus.
+            var resources = CreateCard("Top Gravity Core and G Coin resources", parent, Vector2.zero,
+                new Vector2(420f, 82f), new Color(0.006f, 0.014f, 0.025f, 0.98f), 27);
+            var resourcesRect = resources.GetComponent<RectTransform>();
+            resourcesRect.anchorMin = new Vector2(0f, 0.5f);
+            resourcesRect.anchorMax = new Vector2(0f, 0.5f);
+            resourcesRect.pivot = new Vector2(0f, 0.5f);
+            resourcesRect.anchoredPosition = new Vector2(18f, 30f);
+            var resourcesImage = resources.GetComponent<Image>();
+            resourcesImage.raycastTarget = false;
+            AddGraphicOutline(resourcesImage, new Color(0f, 0f, 0f, 0.94f), 2.5f);
 
-            for (var i = 0; i < left.Length; i++)
-            {
-                var l = CreateCard("Brain left lobe " + i, parent, left[i], new Vector2(19f, 23f), white, 10);
-                l.GetComponent<Image>().raycastTarget = false;
-                var r = CreateCard("Brain right lobe " + i, parent, right[i], new Vector2(19f, 23f), white, 10);
-                r.GetComponent<Image>().raycastTarget = false;
-            }
+            gameGravityCoreAmountText = MakeText(resources.transform,
+                bootstrapState != null ? bootstrapState.GravityCores.ToString("N0") : "0",
+                34, FontStyle.Bold, Color.white, new Vector2(-126f, 0f),
+                new Vector2(62f, 62f), TextAnchor.MiddleCenter, 0);
+            gameGravityCoreAmountText.gameObject.name = "Top Gravity Core amount";
+            gameGravityCoreAmountText.resizeTextForBestFit = true;
+            gameGravityCoreAmountText.resizeTextMinSize = 25;
+            gameGravityCoreAmountText.resizeTextMaxSize = 36;
 
-            var split = CreateCard("Brain center split", parent, Vector2.zero,
-                new Vector2(4f, 46f), Hex("080D2D"), 2);
-            split.GetComponent<Image>().raycastTarget = false;
-            var notchL = CreateCard("Brain left notch", parent, new Vector2(-14f, 5f),
-                new Vector2(9f, 4f), Hex("080D2D"), 2);
-            notchL.GetComponent<Image>().raycastTarget = false;
-            var notchR = CreateCard("Brain right notch", parent, new Vector2(14f, -5f),
-                new Vector2(9f, 4f), Hex("080D2D"), 2);
-            notchR.GetComponent<Image>().raycastTarget = false;
-        }
-        private void BuildTopCoinCluster(Transform parent)
-        {
-            // High-contrast coin pill: coin icon + value + separate green add button.
-            var counter = CreateCard("Top coin counter", parent, new Vector2(-188f, 0f),
-                new Vector2(238f, 102f), new Color(0.008f, 0.014f, 0.025f, 1f), 34);
-            var counterImage = counter.GetComponent<Image>();
-            counterImage.raycastTarget = false;
-            AddGraphicOutline(counterImage, new Color(0f, 0f, 0f, 0.92f), 3f);
+            // This is a fixed-size HUD icon, so it intentionally does not use MakeTextureImage's
+            // EnvelopeParent fitter (which is appropriate for large hero art, not compact icons).
+            var gravityCoreObject = new GameObject("Label-free Gravity Core revive asset");
+            gravityCoreObject.transform.SetParent(resources.transform, false);
+            var gravityCoreRect = gravityCoreObject.AddComponent<RectTransform>();
+            SetRect(gravityCoreRect, new Vector2(-177f, 0f), new Vector2(50f, 50f));
+            var gravityCore = gravityCoreObject.AddComponent<RawImage>();
+            // Use the first store crystal as the compact revive symbol so the HUD and store
+            // share one visual language. The larger bundles use their own progressive art.
+            gravityCore.texture = Resources.Load<Texture2D>(
+                "UI/Shop/Store/Revive/revive_bundle_0");
+            gravityCore.color = Color.white;
+            gravityCore.raycastTarget = false;
 
-            var coinOuter = CreateCard("Top coin outer", counter.transform, new Vector2(-77f, 0f),
-                new Vector2(60f, 60f), Hex("F6A90F"), 30);
-            coinOuter.GetComponent<Image>().raycastTarget = false;
-            var coinInner = CreateCard("Top coin inner", coinOuter.transform, Vector2.zero,
-                new Vector2(48f, 48f), Hex("FFD65A"), 24);
-            coinInner.GetComponent<Image>().raycastTarget = false;
-            var coinCore = CreateCard("Top coin core", coinInner.transform, new Vector2(2f, -2f),
-                new Vector2(36f, 36f), Hex("EFAE25"), 18);
-            coinCore.GetComponent<Image>().raycastTarget = false;
-            var shine = CreateCard("Top coin shine", coinInner.transform, new Vector2(-9f, 10f),
-                new Vector2(12f, 17f), new Color(1f, 1f, 0.88f, 0.95f), 6);
-            shine.GetComponent<Image>().raycastTarget = false;
-
-            var amount = MakeText(counter.transform,
+            BuildCanonicalGameCoin(resources.transform, new Vector2(-68f, 0f), 46f);
+            gameCoinAmountText = MakeText(resources.transform,
                 bootstrapState != null ? bootstrapState.Coins.ToString("N0") : "0",
-                44, FontStyle.Bold, Color.white,
-                new Vector2(38f, 0f), new Vector2(112f, 72f), TextAnchor.MiddleLeft, 0);
-            amount.gameObject.name = "Top coin amount";
+                36, FontStyle.Bold, Color.white, new Vector2(21f, 0f),
+                new Vector2(118f, 62f), TextAnchor.MiddleCenter, 0);
+            gameCoinAmountText.gameObject.name = "Top coin amount";
+            gameCoinAmountText.resizeTextForBestFit = true;
+            gameCoinAmountText.resizeTextMinSize = 25;
+            gameCoinAmountText.resizeTextMaxSize = 38;
 
-            var add = CreateCard("Top coin add button", parent, new Vector2(-12f, 0f),
-                new Vector2(78f, 78f), Hex("78D85A"), 21);
+            BuildStorePlusButton(resources.transform, "Top resource Store add button",
+                new Vector2(169f, 0f), () => OpenStoreForCurrency(StoreCurrencyKind.Coins));
+        }
+
+        private void BuildStorePlusButton(Transform parent, string objectName, Vector2 position,
+            UnityEngine.Events.UnityAction action)
+        {
+            var add = CreateCard(objectName, parent, position, new Vector2(54f, 54f), Hex("78D85A"), 17);
             var addImage = add.GetComponent<Image>();
             var addButton = add.AddComponent<Button>();
             addButton.targetGraphic = addImage;
             addButton.navigation = new Navigation { mode = Navigation.Mode.None };
-            addButton.onClick.AddListener(() => ShowGameTab("SHOP"));
-            var plus = MakeText(add.transform, "+", 54, FontStyle.Normal, Color.white,
-                new Vector2(0f, 2f), new Vector2(72f, 72f), TextAnchor.MiddleCenter, 0);
+            addButton.onClick.AddListener(action);
+            var plus = MakeText(add.transform, "+", 44, FontStyle.Normal, Color.white,
+                new Vector2(0f, 1f), new Vector2(54f, 54f), TextAnchor.MiddleCenter, 0);
             plus.raycastTarget = false;
         }
+
+        private void BuildTopGravityDisc(Transform parent)
+        {
+            // The Disc is one complete compact control: icon well -> inventory -> plus.
+            // It sits slightly right of center so it never touches the left wallet capsule.
+            var discRoot = CreateCard("Top Gravity Disc inventory and Boosts shortcut", parent,
+                new Vector2(24f, 30f), new Vector2(218f, 82f),
+                Hex("061424"), 27);
+            var discRootImage = discRoot.GetComponent<Image>();
+            discRootImage.raycastTarget = false;
+            AddGraphicOutline(discRootImage, new Color(Cyan.r, Cyan.g, Cyan.b, 0.78f), 1.8f);
+            var discGlow = discRoot.AddComponent<Shadow>();
+            discGlow.effectColor = new Color(Cyan.r, Cyan.g, Cyan.b, 0.26f);
+            discGlow.effectDistance = new Vector2(0f, -3f);
+
+            var iconWell = CreateCard("Gravity Disc icon well", discRoot.transform,
+                new Vector2(-63f, 0f), new Vector2(90f, 64f), Hex("040E1E"), 22);
+            var iconWellImage = iconWell.GetComponent<Image>();
+            iconWellImage.raycastTarget = false;
+            AddGraphicOutline(iconWellImage,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.55f), 1.2f);
+
+            var coreHalo = CreateCard("Gravity Disc cyan energy halo", iconWell.transform,
+                Vector2.zero, new Vector2(68f, 42f),
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.10f), 21);
+            coreHalo.GetComponent<Image>().raycastTarget = false;
+
+            gameGravityDiscAmountText = MakeText(discRoot.transform, "0", 36, FontStyle.Bold,
+                Color.white, new Vector2(16f, 0f), new Vector2(58f, 58f),
+                TextAnchor.MiddleCenter, 0);
+            gameGravityDiscAmountText.resizeTextForBestFit = true;
+            gameGravityDiscAmountText.resizeTextMinSize = 23;
+            gameGravityDiscAmountText.resizeTextMaxSize = 36;
+            AddGraphicOutline(gameGravityDiscAmountText, Hex("04101E"), 1.2f);
+
+            var discObject = new GameObject("Gravity Disc inventory asset");
+            discObject.transform.SetParent(iconWell.transform, false);
+            var discRect = discObject.AddComponent<RectTransform>();
+            SetRect(discRect, Vector2.zero, new Vector2(84f, 56f));
+            var disc = discObject.AddComponent<RawImage>();
+            disc.texture = Resources.Load<Texture2D>("UI/Shop/Boosters/gravity_disc_enhanced");
+            disc.color = Color.white;
+            disc.raycastTarget = false;
+
+            BuildStorePlusButton(discRoot.transform, "Top Gravity Disc Boosts shortcut",
+                new Vector2(78f, 0f), OpenBoostsStore);
+
+            var energyRail = CreateCard("Gravity Disc lower energy rail", discRoot.transform,
+                new Vector2(-4f, -35f), new Vector2(150f, 3f),
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.68f), 2);
+            energyRail.GetComponent<Image>().raycastTarget = false;
+
+            RefreshGravityDiscHeader();
+        }
+
+        private void BuildTopMultiplier(Transform parent)
+        {
+            // Keep the multiplier outside the star: x1  ★  gear.
+            var root = new GameObject("Firestore score multiplier");
+            root.transform.SetParent(parent, false);
+            var rect = root.AddComponent<RectTransform>();
+            SetRect(rect, new Vector2(-188f, 30f), new Vector2(174f, 94f));
+            rect.anchorMin = new Vector2(1f, 0.5f);
+            rect.anchorMax = new Vector2(1f, 0.5f);
+
+            gameMultiplierText = MakeText(root.transform, "x1", 34, FontStyle.Bold, Hex("FFD65A"),
+                new Vector2(-47f, -4f), new Vector2(76f, 94f), TextAnchor.MiddleCenter, 0);
+            gameMultiplierText.resizeTextForBestFit = true;
+            gameMultiplierText.resizeTextMinSize = 23;
+            gameMultiplierText.resizeTextMaxSize = 34;
+            gameMultiplierText.alignByGeometry = true;
+            AddGraphicOutline(gameMultiplierText, Hex("5C3508"), 1.8f);
+
+            var star = MakeText(root.transform, "★", 88, FontStyle.Bold, Hex("FFD23E"),
+                new Vector2(44f, 0f), new Vector2(92f, 92f), TextAnchor.MiddleCenter, 0);
+            star.alignByGeometry = true;
+            AddGraphicOutline(star, Hex("B86A16"), 2.5f);
+            var starGlow = star.gameObject.AddComponent<Shadow>();
+            starGlow.effectColor = new Color(1f, 0.68f, 0.08f, 0.40f);
+            starGlow.effectDistance = new Vector2(2f, -2f);
+
+        }
+
+        // Canonical Gravity: Half Dead coin. All UI surfaces use this same construction so a future
+        // world-space pickup can reproduce the same rim, face, core and highlight without redesigning it.
+        private void BuildCanonicalGameCoin(Transform parent, Vector2 position, float diameter)
+        {
+            var scale = diameter / 60f;
+            var coinOuter = CreateCard("Canonical game coin outer", parent, position,
+                new Vector2(diameter, diameter), Hex("F6A90F"), Mathf.RoundToInt(diameter * 0.5f));
+            coinOuter.GetComponent<Image>().raycastTarget = false;
+
+            var coinInner = CreateCard("Canonical game coin inner", coinOuter.transform, Vector2.zero,
+                new Vector2(48f, 48f) * scale, Hex("FFD65A"), Mathf.RoundToInt(24f * scale));
+            coinInner.GetComponent<Image>().raycastTarget = false;
+
+            var coinCore = CreateCard("Canonical game coin core", coinInner.transform,
+                new Vector2(2f, -2f) * scale, new Vector2(36f, 36f) * scale,
+                Hex("EFAE25"), Mathf.RoundToInt(18f * scale));
+            coinCore.GetComponent<Image>().raycastTarget = false;
+
+            var shine = CreateCard("Canonical game coin shine", coinInner.transform,
+                new Vector2(-9f, 10f) * scale, new Vector2(12f, 17f) * scale,
+                new Color(1f, 1f, 0.88f, 0.95f), Mathf.Max(1, Mathf.RoundToInt(6f * scale)));
+            shine.GetComponent<Image>().raycastTarget = false;
+
+            var gravityMark = MakeText(coinCore.transform, "G", Mathf.Max(9, Mathf.RoundToInt(29f * scale)),
+                FontStyle.Bold, Hex("FFF1A0"), Vector2.zero, new Vector2(34f, 34f) * scale,
+                TextAnchor.MiddleCenter, 1);
+            gravityMark.raycastTarget = false;
+            AddGraphicOutline(gravityMark, Hex("A85C08"), Mathf.Max(1f, 1.3f * scale));
+        }
+
         private void BuildHardCodedSettingsButton(Transform parent)
         {
-            // Bright white gear on a lighter dark face so it cannot disappear on OLED/dark wallpaper.
-            var outer = CreateCard("Top settings cyan frame", parent, new Vector2(410f, 0f),
-                new Vector2(132f, 132f), new Color(Cyan.r, Cyan.g, Cyan.b, 0.98f), 36);
+            // Borderless reference-sized gear. Keep a larger invisible touch target for accessibility.
+            var outer = CreateCard("Top settings transparent hit target", parent, new Vector2(458f, 0f),
+                new Vector2(96f, 96f), new Color(1f, 1f, 1f, 0.001f), 26);
+            var outerRect = outer.GetComponent<RectTransform>();
+            outerRect.anchorMin = new Vector2(1f, 0.5f);
+            outerRect.anchorMax = new Vector2(1f, 0.5f);
+            outerRect.anchoredPosition = new Vector2(-55f, 30f);
             var outerImage = outer.GetComponent<Image>();
             var button = outer.AddComponent<Button>();
             button.targetGraphic = outerImage;
             button.navigation = new Navigation { mode = Navigation.Mode.None };
             button.onClick.AddListener(OpenGameSettings);
 
-            var metal = CreateCard("Top settings metal rim", outer.transform, Vector2.zero,
-                new Vector2(118f, 118f), Hex("A6C0D0"), 33);
-            metal.GetComponent<Image>().raycastTarget = false;
-            var face = CreateCard("Top settings dark face", metal.transform, Vector2.zero,
-                new Vector2(104f, 104f), Hex("122235"), 29);
-            face.GetComponent<Image>().raycastTarget = false;
-            var glow = CreateCard("Top settings gear glow", face.transform, Vector2.zero,
-                new Vector2(86f, 86f), new Color(Cyan.r, Cyan.g, Cyan.b, 0.16f), 28);
-            glow.GetComponent<Image>().raycastTarget = false;
-            BuildProceduralGear(face.transform);
+            BuildProceduralGear(outer.transform, 0.74f);
         }
-        private void BuildProceduralGear(Transform parent)
+        private void BuildProceduralGear(Transform parent, float scale)
         {
             var gearColor = Color.white;
             for (var i = 0; i < 8; i++)
             {
                 var angleDegrees = i * 45f;
                 var angle = angleDegrees * Mathf.Deg2Rad;
-                var position = new Vector2(Mathf.Sin(angle) * 31f, Mathf.Cos(angle) * 31f);
+                var position = new Vector2(Mathf.Sin(angle) * 31f, Mathf.Cos(angle) * 31f) * scale;
                 var tooth = CreateCard("Gear tooth " + i, parent, position,
-                    new Vector2(16f, 28f), gearColor, 4);
+                    new Vector2(16f, 28f) * scale, gearColor, Mathf.Max(2, Mathf.RoundToInt(4f * scale)));
                 tooth.transform.localEulerAngles = new Vector3(0f, 0f, -angleDegrees);
                 tooth.GetComponent<Image>().raycastTarget = false;
             }
 
             var ring = CreateCard("Gear outer ring", parent, Vector2.zero,
-                new Vector2(72f, 72f), gearColor, 36);
+                new Vector2(72f, 72f) * scale, gearColor, Mathf.RoundToInt(36f * scale));
             ring.GetComponent<Image>().raycastTarget = false;
             var ringHole = CreateCard("Gear ring hole", ring.transform, Vector2.zero,
-                new Vector2(46f, 46f), Hex("122235"), 23);
+                new Vector2(46f, 46f) * scale, Hex("122235"), Mathf.RoundToInt(23f * scale));
             ringHole.GetComponent<Image>().raycastTarget = false;
             var hub = CreateCard("Gear hub", ringHole.transform, Vector2.zero,
-                new Vector2(20f, 20f), gearColor, 10);
+                new Vector2(20f, 20f) * scale, gearColor, Mathf.RoundToInt(10f * scale));
             hub.GetComponent<Image>().raycastTarget = false;
         }
 
@@ -468,6 +568,8 @@ namespace GravityHalfDead
         {
             if (tapToPlayRoot == null)
                 return;
+            BeginMissionRun();
+            BeginGravityCoreRun();
             StopCoroutine(nameof(AnimateTapToPlay));
             StartCoroutine(AnimateTapToPlay());
         }

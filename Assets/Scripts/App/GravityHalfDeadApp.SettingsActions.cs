@@ -497,6 +497,11 @@ namespace GravityHalfDead
         {
             CloseGameSettings();
             settingsAvatarLoadedUrl = string.Empty;
+            StopPowerupRealtimeSync();
+            StopCharacterRealtimeSync();
+            StopShopRealtimeSync();
+            StopMissionRealtimeSync();
+            StopHomePlayerFirestoreSync();
             if (auth != null)
                 auth.SignOut();
             SetAuthMessage("Signed out safely. Choose how you want to return.", Cyan);

@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 #endif
 using Firebase;
 using Firebase.Auth;
+using Firebase.Database;
 using Firebase.Firestore;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -52,18 +53,20 @@ namespace GravityHalfDead
         "LUNA", "VOLT", "MAKO", "GLITCH", "EMBER", "FROST"
     };
         private static readonly string[] PowerupIds =
-            { "magnet", "speed_boost", "shield", "invulnerability", "wall_walk" };
+            { "shield", "speed_boost", "invulnerability", "magnet", "wall_walk", "timezone" };
         private static readonly string[] PowerupNames =
-            { "GRAVITY MAGNET", "SPEED BOOST", "NEON SHIELD", "INVULNERABILITY", "WALL WALK" };
+            { "SHIELD", "SPEED BOOST", "INVULNERABILITY", "MAGNET", "WALL WALK", "TIMEZONE" };
         private static readonly string[] PowerupDescriptions =
         {
-        "Pulls nearby coins into your lane.",
-        "Accelerates through a clear neon route.",
-        "Absorbs one collision before breaking.",
+        "Blocks one collision before shattering.",
+        "Increases running speed for a limited time.",
         "Pass safely through hazards for a short time.",
-        "Experimental magnetic boots grip tunnel walls."
+        "Pulls nearby coins into your lane.",
+        "Magnetic boots let you run on tunnel walls.",
+        "Extends every power-up effect by 10% per level."
     };
-        private static readonly long[] PowerupUpgradeCosts = { 500L, 1500L, 3000L, 10000L, 30000L, 60000L };
+        private static readonly long[] PowerupUpgradeCosts = { 500L, 1000L, 3000L, 10000L, 30000L, 60000L };
+        private static readonly long[] TimezoneUpgradeCosts = { 5000L, 15000L, 45000L, 60000L, 60000L, 60000L };
         private static readonly int[] PowerupDurations = { 5, 10, 14, 18, 22, 26, 30 };
 
         private readonly Dictionary<string, CanvasGroup> screens = new();
@@ -71,6 +74,7 @@ namespace GravityHalfDead
         private Font handwritingFont;
         private RectTransform safeRoot;
         private FirebaseAuth auth;
+        private FirebaseDatabase realtimeDatabase;
         private FirebaseFirestore firestore;
         private Task firebaseReadyTask;
         // ageSlider, ageValueText, ageHintText moved to GravityHalfDeadApp.Age.cs
@@ -86,10 +90,13 @@ namespace GravityHalfDead
         private Image gameModeGlow;
         private Image gameStoryBorder;
         private Image gameEndlessBorder;
+        private Text gameCoinAmountText;
         private RawImage topPlayerAvatarImage;
         private RawImage topPlayerAvatarFrameImage;
         private GameObject topPlayerAvatarFallback;
         private CanvasGroup gameTabPanel;
+        private GameObject gameBottomNavigation;
+        private Button gameSectionCloseButton;
         private Text gameTabTitle;
         private Text gameTabSubtitle;
         private GameObject gameGenericTabContent;
@@ -97,6 +104,7 @@ namespace GravityHalfDead
         private GameObject meStatisticsContent;
         private GameObject meCharactersContent;
         private GameObject mePowerupsContent;
+        private GameObject meDiscsContent;
         private Button meStatisticsTabButton;
         private Button meAvatarsTabButton;
         private Button mePowerupsTabButton;
@@ -106,13 +114,15 @@ namespace GravityHalfDead
         private readonly Text[] meAvatarStatusTexts = new Text[13];
         private readonly Image[] meFrameBorders = new Image[3];
         private readonly Text[] meFrameStatuses = new Text[3];
-        private readonly Image[,] mePowerupSegments = new Image[5, 6];
-        private readonly Text[] mePowerupLevelTexts = new Text[5];
-        private readonly Text[] mePowerupDurationTexts = new Text[5];
-        private readonly Text[] mePowerupCostTexts = new Text[5];
-        private readonly Button[] mePowerupButtons = new Button[5];
+        private readonly Image[,] mePowerupSegments = new Image[6, 6];
+        private readonly Text[] mePowerupLevelTexts = new Text[6];
+        private readonly Text[] mePowerupDurationTexts = new Text[6];
+        private readonly Text[] mePowerupCostTexts = new Text[6];
+        private readonly Text[] mePowerupButtonLabelTexts = new Text[6];
+        private readonly Button[] mePowerupButtons = new Button[6];
         private RawImage meCharacterShowcase;
         private Material characterCutoutMaterial;
+        private Material novaCutoutMaterial;
         private Text meCharacterName;
         private Text meCharacterUnlockText;
         private Text meCharacterWalletText;
@@ -167,6 +177,7 @@ namespace GravityHalfDead
             Application.targetFrameRate = 60;
             Screen.orientation = ScreenOrientation.Portrait;
             gameObject.AddComponent<FacebookLoginAdapter>();
+            gameObject.AddComponent<GoogleMobileAdsTestRewardedProvider>();
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             handwritingFont = Resources.Load<Font>("Fonts/Kalam-Bold");
             if (handwritingFont == null)

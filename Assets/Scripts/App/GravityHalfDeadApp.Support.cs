@@ -21,6 +21,10 @@ namespace GravityHalfDead
 {
     public sealed partial class GravityHalfDeadApp
     {
+        private const string SupportWorkerEndpoint =
+            "https://gravity-support-email.mkanafani40.workers.dev/support";
+        private const int SupportMaximumAttachmentCount = 2;
+
         private void OpenPrivacyPolicy()
         {
             Application.OpenURL("https://gravity-half-dead.web.app/privacy");
@@ -66,6 +70,8 @@ private static extern void GHD_PickSupportImages();
             long totalBytes = 0;
             foreach (var path in newlineSeparatedPaths.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries))
             {
+                if (supportImagePaths.Count >= SupportMaximumAttachmentCount)
+                    break;
                 if (!File.Exists(path))
                     continue;
 
@@ -113,11 +119,11 @@ private static extern void GHD_PickSupportImages();
             try
             {
                 var token = await auth.CurrentUser.TokenAsync(false);
-                var uploadedPaths = new List<string>();
+                var attachments = new List<SupportAttachmentPayload>();
                 for (var i = 0; i < supportImagePaths.Count; i++)
                 {
-                    SetSupportStatus("Uploading image " + (i + 1) + " of " + supportImagePaths.Count + "…", Cyan);
-                    uploadedPaths.Add(await UploadSupportImageAsync(supportImagePaths[i], requestId, i, token));
+                    SetSupportStatus("Preparing image " + (i + 1) + " of " + supportImagePaths.Count + "…", Cyan);
+                    attachments.Add(await ReadSupportAttachmentAsync(supportImagePaths[i], i));
                 }
 
                 SetSupportStatus("Sending your support request…", Cyan);
@@ -126,7 +132,7 @@ private static extern void GHD_PickSupportImages();
                     requestId = requestId,
                     subject = subject,
                     body = body,
-                    attachmentPaths = uploadedPaths.ToArray()
+                    attachments = attachments.ToArray()
                 };
                 await SendSupportEmailRequestAsync(JsonUtility.ToJson(payload), token);
 
@@ -151,26 +157,22 @@ private static extern void GHD_PickSupportImages();
             }
         }
 
-        private async Task<string> UploadSupportImageAsync(string localPath, string requestId, int index, string token)
+        private static async Task<SupportAttachmentPayload> ReadSupportAttachmentAsync(
+            string localPath, int index)
         {
-            var bucket = FirebaseApp.DefaultInstance.Options.StorageBucket;
-            if (string.IsNullOrWhiteSpace(bucket))
-                throw new InvalidOperationException("Firebase Storage bucket is not configured.");
-
             var extension = Path.GetExtension(localPath).ToLowerInvariant();
             if (extension != ".png" && extension != ".jpg" && extension != ".jpeg" && extension != ".webp")
                 extension = ".jpg";
-            var objectPath = "support/" + auth.CurrentUser.UserId + "/" + requestId + "/image-" + (index + 1) + extension;
-            var endpoint = "https://firebasestorage.googleapis.com/v0/b/" + Uri.EscapeDataString(bucket)
-                + "/o?uploadType=media&name=" + Uri.EscapeDataString(objectPath);
             var bytes = await File.ReadAllBytesAsync(localPath);
-            using var request = new UnityWebRequest(endpoint, UnityWebRequest.kHttpVerbPOST);
-            request.uploadHandler = new UploadHandlerRaw(bytes);
-            request.downloadHandler = new DownloadHandlerBuffer();
-            request.SetRequestHeader("Authorization", "Bearer " + token);
-            request.SetRequestHeader("Content-Type", ImageContentType(extension));
-            await SendWebRequestAsync(request);
-            return objectPath;
+            if (bytes.LongLength <= 0 || bytes.LongLength > SupportUploadLimitBytes)
+                throw new InvalidOperationException("The selected screenshot is empty or too large.");
+
+            return new SupportAttachmentPayload
+            {
+                filename = "gravity-support-" + (index + 1) + extension,
+                contentType = ImageContentType(extension),
+                contentBase64 = Convert.ToBase64String(bytes)
+            };
         }
 
         private static async Task SendWebRequestAsync(UnityWebRequest request)
@@ -179,13 +181,24 @@ private static extern void GHD_PickSupportImages();
             while (!operation.isDone)
                 await Task.Yield();
             if (request.result != UnityWebRequest.Result.Success)
-                throw new InvalidOperationException(request.responseCode + ": " + request.downloadHandler.text);
+            {
+                if (request.responseCode == 404
+                    && request.url.IndexOf("gravity-support-email", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    throw new InvalidOperationException(
+                        "The support email Worker route is not deployed.");
+                }
+
+                var responseBody = request.downloadHandler != null ? request.downloadHandler.text : string.Empty;
+                if (responseBody.Length > 300)
+                    responseBody = responseBody[..300] + "…";
+                throw new InvalidOperationException(request.responseCode + ": " + responseBody);
+            }
         }
 
         private async Task SendSupportEmailRequestAsync(string json, string token)
         {
-            const string endpoint = "https://europe-west1-gravity-half-dead.cloudfunctions.net/submitSupportRequest";
-            using var request = new UnityWebRequest(endpoint, UnityWebRequest.kHttpVerbPOST);
+            using var request = new UnityWebRequest(SupportWorkerEndpoint, UnityWebRequest.kHttpVerbPOST);
             request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Authorization", "Bearer " + token);
@@ -233,7 +246,15 @@ private static extern void GHD_PickSupportImages();
             public string requestId;
             public string subject;
             public string body;
-            public string[] attachmentPaths;
+            public SupportAttachmentPayload[] attachments;
+        }
+
+        [Serializable]
+        private sealed class SupportAttachmentPayload
+        {
+            public string filename;
+            public string contentType;
+            public string contentBase64;
         }
     }
 }

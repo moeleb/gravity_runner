@@ -1,20 +1,5 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-#if UNITY_IOS
-using System.Runtime.InteropServices;
-#endif
-using Firebase;
-using Firebase.Auth;
-using Firebase.Firestore;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
-using UnityEngine.Networking;
 using UnityEngine.UI;
 
 namespace GravityHalfDead
@@ -32,17 +17,29 @@ namespace GravityHalfDead
                 meStatisticValues[4].text = FormatDistance(bootstrapState.TotalDistanceMeters);
             }
 
-            for (var i = 0; i < meAvatarBorders.Length; i++)
+            if (gameCoinAmountText != null)
+                gameCoinAmountText.text = bootstrapState.Coins.ToString("N0");
+            if (meCharacterWalletText != null)
+                meCharacterWalletText.text = "COINS  " + bootstrapState.Coins.ToString("N0");
+
+            for (var i = 0; i < CharacterScreenCount; i++)
             {
                 if (meAvatarBorders[i] == null)
                     continue;
+
                 var unlocked = IsCharacterUnlocked(CharacterIds[i]);
                 var selected = bootstrapState.SelectedCharacter == CharacterIds[i];
                 meAvatarBorders[i].gameObject.SetActive(selected);
-                meAvatarStatusTexts[i].text = string.Empty;
-                meAvatarStatusTexts[i].color = selected ? NeonLime : Cream;
+                if (meCharacterCheckmarks[i] != null)
+                    meCharacterCheckmarks[i].SetActive(selected);
+                if (meCharacterLockOverlays[i] != null)
+                    meCharacterLockOverlays[i].SetActive(!unlocked);
+                if (meCharacterCostGroups[i] != null)
+                    meCharacterCostGroups[i].SetActive(!unlocked);
+                if (meAvatarStatusTexts[i] != null)
+                    meAvatarStatusTexts[i].color = unlocked ? Muted : new Color(Muted.r, Muted.g, Muted.b, 0.62f);
                 if (meAvatarPortraits[i] != null)
-                    meAvatarPortraits[i].color = unlocked ? Color.white : new Color(0.72f, 0.72f, 0.78f, 0.62f);
+                    meAvatarPortraits[i].color = unlocked ? Color.white : new Color(0.76f, 0.82f, 0.91f, 0.80f);
             }
 
             RefreshCharacterShowcase();
@@ -50,14 +47,15 @@ namespace GravityHalfDead
 
         private void PreviewCharacter(string avatarId)
         {
+            var index = Array.IndexOf(CharacterIds, avatarId);
+            if (index < 0 || index >= CharacterScreenCount)
+                return;
+
             previewCharacterId = avatarId;
             if (IsCharacterUnlocked(avatarId) && bootstrapState.SelectedCharacter != avatarId)
-            {
-                bootstrapState.SelectedCharacter = avatarId;
-                _ = SaveProfileCosmeticsAsync();
-                RefreshTopPlayerAvatar(auth != null ? auth.CurrentUser : null);
-            }
-            RefreshMeProfileUI();
+                SelectAvatar(avatarId);
+            else
+                RefreshMeProfileUI();
         }
 
         private void RefreshCharacterShowcase()
@@ -66,18 +64,54 @@ namespace GravityHalfDead
                 return;
 
             var index = Array.IndexOf(CharacterIds, previewCharacterId);
-            if (index < 0)
+            if (index < 0 || index >= CharacterScreenCount)
             {
-                index = 0;
-                previewCharacterId = CharacterIds[0];
+                index = Mathf.Clamp(Array.IndexOf(CharacterIds, bootstrapState.SelectedCharacter), 0,
+                    CharacterScreenCount - 1);
+                previewCharacterId = CharacterIds[index];
             }
-            meCharacterShowcase.texture = Resources.Load<Texture2D>("UI/Characters/" + previewCharacterId);
-            meCharacterShowcase.material = index >= 3 ? characterCutoutMaterial : null;
+
+            meCharacterShowcase.texture = Resources.Load<Texture2D>(CharacterArtworkResource(previewCharacterId));
+            meCharacterShowcase.material = CharacterArtworkMaterial(index);
+            meCharacterShowcase.uvRect = new Rect(0f, 0f, 1f, 1f);
+            var showcaseAspect = meCharacterShowcase.GetComponent<AspectRatioFitter>();
+            if (showcaseAspect != null)
+                showcaseAspect.enabled = false;
+            SetFeaturedCharacterRect(meCharacterShowcase.texture);
             meCharacterName.text = CharacterNames[index];
+            if (meCharacterRarityText != null)
+                meCharacterRarityText.text = CharacterRarities[index];
+            if (meCharacterCollectionText != null)
+                meCharacterCollectionText.text = (index + 1) + " / " + CharacterScreenCount;
+            for (var dotIndex = 0; dotIndex < meCharacterPositionDots.Length; dotIndex++)
+            {
+                if (meCharacterPositionDots[dotIndex] != null)
+                    meCharacterPositionDots[dotIndex].color = dotIndex == index ? Cyan : Hex("193C67");
+            }
+
             var unlocked = IsCharacterUnlocked(previewCharacterId);
-            meCharacterUnlockText.text = unlocked ? string.Empty : CharacterUnlockPrice(previewCharacterId);
-            meCharacterActionButton.gameObject.SetActive(!unlocked);
-            meCharacterActionButton.interactable = !unlocked;
+            if (meCharacterActionLock != null)
+                meCharacterActionLock.SetActive(!unlocked);
+            if (meCharacterActionCoin != null)
+                meCharacterActionCoin.SetActive(!unlocked);
+            if (meCharacterActionLabelText != null)
+            {
+                meCharacterActionLabelText.text = unlocked
+                    ? "SELECTED"
+                    : CharacterUnlockCoinCost.ToString("N0") + "  ·  UNLOCK";
+                meCharacterActionLabelText.color = unlocked ? NeonLime : Hex("FFD35C");
+                meCharacterActionLabelText.rectTransform.anchoredPosition = unlocked
+                    ? Vector2.zero : new Vector2(24f, 0f);
+            }
+            if (meCharacterActionButton != null)
+            {
+                var canPurchase = bootstrapState.Coins >= CharacterUnlockCoinCost;
+                meCharacterActionButton.interactable = !characterPurchaseInFlight && !unlocked && canPurchase;
+                var actionImage = meCharacterActionButton.GetComponent<Image>();
+                if (actionImage != null)
+                    actionImage.color = unlocked ? Hex("0B5C82")
+                        : canPurchase ? Hex("0B4C78") : Hex("111D31");
+            }
         }
 
         private void TryUnlockOrSelectPreviewCharacter()
@@ -88,33 +122,7 @@ namespace GravityHalfDead
                 return;
             }
 
-            var unlocked = false;
-            switch (previewCharacterId)
-            {
-                case "orbit": unlocked = bootstrapState.RobotShards >= 250L; break;
-                case "jax": unlocked = SpendCoins(30000L); break;
-                case "raze": unlocked = bootstrapState.HasMadePurchase; break;
-                case "echo": unlocked = bootstrapState.IceShards >= 200L; break;
-                case "regalia":
-                    meCharacterUnlockText.text = CharacterUnlockPrice(previewCharacterId);
-                    return;
-                case "kairo": unlocked = SpendCoins(10000L); break;
-                case "luna": unlocked = bootstrapState.ConsecutiveLoginDays >= 7L; break;
-                case "volt": unlocked = bootstrapState.TotalDistanceMeters >= 50000L; break;
-                case "mako": unlocked = bootstrapState.CompletedRuns >= 25L; break;
-                case "glitch": unlocked = SpendCoins(75000L); break;
-                case "ember": unlocked = bootstrapState.TotalPlaySeconds >= 36000L; break;
-                case "frost": unlocked = bootstrapState.IceShards >= 400L; break;
-            }
-
-            if (!unlocked)
-            {
-                meCharacterUnlockText.text = CharacterUnlockPrice(previewCharacterId);
-                return;
-            }
-
-            bootstrapState.UnlockedCharacters.Add(previewCharacterId);
-            SelectAvatar(previewCharacterId);
+            _ = UnlockCharacterWithCoinsAsync(previewCharacterId);
         }
 
         private void SelectAvatar(string avatarId)
@@ -122,9 +130,11 @@ namespace GravityHalfDead
             if (!IsCharacterUnlocked(avatarId))
                 return;
             bootstrapState.SelectedCharacter = avatarId;
+            previewCharacterId = avatarId;
             RefreshMeProfileUI();
-            _ = SaveProfileCosmeticsAsync();
             RefreshTopPlayerAvatar(auth != null ? auth.CurrentUser : null);
+            _ = SetSelectedCharacterRealtimeAsync(avatarId);
+            _ = SaveProfileCosmeticsAsync();
         }
 
         private bool SpendCoins(long amount)
@@ -132,62 +142,19 @@ namespace GravityHalfDead
             if (bootstrapState.Coins < amount)
                 return false;
             bootstrapState.Coins -= amount;
+            RefreshPowerupUI();
+            RefreshMeProfileUI();
+            _ = SetRealtimeCoinBalanceAsync(bootstrapState.Coins);
             return true;
         }
 
         private bool IsCharacterUnlocked(string avatarId)
             => avatarId == "nova" || bootstrapState.UnlockedCharacters.Contains(avatarId);
 
-        private string CharacterUnlockDescription(string id)
-        {
-            return id switch
-            {
-                "orbit" => "COLLECT 250 ROBOT SHARDS · " + bootstrapState.RobotShards + " / 250",
-                "jax" => "30,000 COINS",
-                "raze" => "FREE WITH YOUR FIRST PURCHASE",
-                "echo" => "COLLECT 200 ICE SHARDS · " + bootstrapState.IceShards + " / 200",
-                "regalia" => "PREMIUM CHARACTER · USD $3.99",
-                "kairo" => "10,000 COINS",
-                "luna" => "REACH A 7-DAY LOGIN STREAK · " + bootstrapState.ConsecutiveLoginDays + " / 7",
-                "volt" => "TRAVEL 50 KM · " + FormatDistance(bootstrapState.TotalDistanceMeters),
-                "mako" => "COMPLETE 25 RUNS · " + bootstrapState.CompletedRuns + " / 25",
-                "glitch" => "75,000 COINS",
-                "ember" => "PLAY FOR 10 HOURS · " + FormatPlayTime(bootstrapState.TotalPlaySeconds),
-                "frost" => "COLLECT 400 ICE SHARDS · " + bootstrapState.IceShards + " / 400",
-                _ => "STARTER CHARACTER · FREE"
-            };
-        }
-
         private static string CharacterUnlockPrice(string id)
-        {
-            return id switch
-            {
-                "orbit" => "250 ROBOT SHARDS",
-                "jax" => "30,000 COINS",
-                "raze" => "FIRST PURCHASE",
-                "echo" => "200 ICE SHARDS",
-                "regalia" => "USD $3.99",
-                "kairo" => "10,000 COINS",
-                "luna" => "7-DAY LOGIN",
-                "volt" => "50 KM",
-                "mako" => "25 RUNS",
-                "glitch" => "75,000 COINS",
-                "ember" => "10 HOURS",
-                "frost" => "400 ICE SHARDS",
-                _ => string.Empty
-            };
-        }
+            => id == "nova" ? string.Empty : CharacterUnlockCoinCost.ToString("N0") + " COINS";
 
         private static string CharacterActionLabel(string id)
-        {
-            return id switch
-            {
-                "jax" => "UNLOCK · 30,000",
-                "kairo" => "UNLOCK · 10,000",
-                "glitch" => "UNLOCK · 75,000",
-                "regalia" => "USD $3.99",
-                _ => "CHECK UNLOCK"
-            };
-        }
+            => id == "nova" ? "SELECTED" : "UNLOCK · " + CharacterUnlockCoinCost.ToString("N0");
     }
 }

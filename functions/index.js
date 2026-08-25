@@ -1,6 +1,7 @@
 "use strict";
 
 const { onRequest } = require("firebase-functions/v2/https");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -14,6 +15,63 @@ const smtpPass = defineSecret("SMTP_PASS");
 const supportFrom = defineSecret("SUPPORT_FROM");
 const supportRecipient = "mkanafani40@gmail.com";
 const maximumAttachmentBytes = 10 * 1024 * 1024;
+
+/**
+ * Counts the first creation of each idempotent user purchase record and keeps
+ * one live winner for G Coins and one for Gravity Cores. The client reads only
+ * the winner document, so "MOST POPULAR" is never statically assigned.
+ *
+ * Before a public production launch, purchase records should be created only
+ * after server-side Google Play / App Store receipt validation.
+ */
+exports.aggregateStorePurchase = onDocumentCreated({
+  document: "users/{uid}/purchases/{purchaseId}",
+  region: "europe-west1",
+}, async (event) => {
+  const snapshot = event.data;
+  if (!snapshot) return;
+  const purchase = snapshot.data() || {};
+  const productId = clean(purchase.product_id, 128);
+  const rewardType = clean(purchase.reward_type, 32);
+  if (!/^[A-Za-z0-9._-]{3,128}$/.test(productId)
+      || (rewardType !== "coins" && rewardType !== "gravity_cores")) {
+    console.warn("Ignoring malformed store purchase", event.params.purchaseId);
+    return;
+  }
+
+  const database = admin.firestore();
+  const metricReference = database.collection("storeProductMetrics").doc(productId);
+  const popularReference = database.collection("storePopularity").doc("current");
+  await database.runTransaction(async (transaction) => {
+    const [metricSnapshot, popularSnapshot] = await Promise.all([
+      transaction.get(metricReference),
+      transaction.get(popularReference),
+    ]);
+    const currentMetric = metricSnapshot.exists ? metricSnapshot.data() : {};
+    const nextCount = Math.max(0, Number(currentMetric.purchase_count || 0)) + 1;
+    transaction.set(metricReference, {
+      product_id: productId,
+      reward_type: rewardType,
+      purchase_count: nextCount,
+      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    const popular = popularSnapshot.exists ? popularSnapshot.data() : {};
+    const idField = rewardType === "coins"
+      ? "coin_product_id" : "gravity_core_product_id";
+    const countField = rewardType === "coins"
+      ? "coin_purchase_count" : "gravity_core_purchase_count";
+    const existingWinner = clean(popular[idField], 128);
+    const existingCount = Math.max(0, Number(popular[countField] || 0));
+    if (nextCount > existingCount || existingWinner === productId) {
+      transaction.set(popularReference, {
+        [idField]: productId,
+        [countField]: nextCount,
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+  });
+});
 
 /**
  * Admin-only Android campaign endpoint. It targets only devices that explicitly

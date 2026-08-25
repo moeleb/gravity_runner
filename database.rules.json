@@ -1,0 +1,198 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "missionPool": {
+      ".read": "auth != null",
+      ".write": false
+    },
+    "players": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "playerId": {
+          ".validate": "newData.isString() && newData.val().length <= 64"
+        },
+        "coins": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+        },
+        "gravityCores": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+        },
+        "highScore": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+        },
+        "upgrades": {
+          "$upgradeId": {
+            ".validate": "$upgradeId.matches(/^(shield|speed_boost|invulnerability|magnet|wall_walk|timezone)$/)",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 32"
+            },
+            "level": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6 && newData.val() % 1 === 0"
+            },
+            "updatedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+            }
+          }
+        },
+        "collectibles": {
+          "$upgradeId": {
+            ".validate": "$upgradeId.matches(/^(shield|speed_boost|invulnerability|magnet|wall_walk|timezone)$/)",
+            "totalCollected": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+            },
+            "lastCollectedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+            }
+          }
+        },
+        "boosters": {
+          "$boosterId": {
+            ".validate": "$boosterId.matches(/^(gravity_disc|headstart|mega_headstart|multiplier_booster)$/)",
+            "inventory": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+            },
+            "updatedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+            }
+          }
+        },
+        "dailyAds": {
+          "boosters": {
+            "$boosterId": {
+              ".validate": "$boosterId.matches(/^(gravity_disc|headstart|mega_headstart|multiplier_booster)$/)",
+              "count": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3 && newData.val() % 1 === 0"
+              },
+              "localDate": {
+                ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)"
+              },
+              "timezoneOffsetMinutes": {
+                ".validate": "newData.isNumber() && newData.val() >= -840 && newData.val() <= 840 && newData.val() % 1 === 0"
+              },
+              "lastResetAt": {
+                ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+              },
+              "lastWatchAt": {
+                ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+              }
+            }
+          }
+        },
+        "storePurchases": {
+          "$transactionHash": {
+            ".validate": "$transactionHash.matches(/^[a-f0-9]{64}$/) && newData.hasChildren(['productId', 'rewardType', 'rewardAmount', 'localizedPrice', 'purchasedAt'])",
+            "productId": {
+              ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9._-]{3,128}$/)"
+            },
+            "rewardType": {
+              ".validate": "newData.isString() && newData.val().matches(/^(coins|gravity_cores)$/)"
+            },
+            "rewardAmount": {
+              ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() % 1 === 0"
+            },
+            "localizedPrice": {
+              ".validate": "newData.isString() && newData.val().length <= 64"
+            },
+            "purchasedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "missions": {
+          ".validate": "newData.hasChildren(['setNumber', 'tier', 'completedCount', 'active', 'updatedAt']) && newData.child('active').hasChildren(['0', '1', '2'])",
+          "setNumber": {
+            ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() % 1 === 0"
+          },
+          "tier": {
+            ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100 && newData.val() % 1 === 0"
+          },
+          "completedCount": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+          },
+          "active": {
+            "$slot": {
+              ".validate": "$slot.matches(/^[0-2]$/) && newData.hasChildren(['instanceId', 'definitionId', 'title', 'parameter', 'target', 'progress', 'status', 'tier', 'assignedAt'])",
+              "instanceId": {
+                ".validate": "newData.isString() && newData.val().matches(/^[a-f0-9]{32}$/)"
+              },
+              "definitionId": {
+                ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9_]{1,64}$/)"
+              },
+              "title": {
+                ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 140"
+              },
+              "parameter": {
+                ".validate": "newData.isString() && newData.val().length <= 64"
+              },
+              "target": {
+                ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() % 1 === 0"
+              },
+              "progress": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= newData.parent().child('target').val() && newData.val() % 1 === 0"
+              },
+              "status": {
+                ".validate": "newData.isString() && newData.val().matches(/^(active|completed|skipped|ad_removed)$/)"
+              },
+              "tier": {
+                ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100 && newData.val() % 1 === 0"
+              },
+              "assignedAt": {
+                ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+              },
+              "resolvedAt": {
+                ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "updatedAt": {
+            ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "characters": {
+          "$characterId": {
+            ".validate": "$characterId.matches(/^(nova|orbit|jax|raze|echo|regalia|kairo|luna|volt|mako|glitch|ember)$/)",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 32"
+            },
+            "unlocked": {
+              ".validate": "newData.isBoolean()"
+            },
+            "unlockCost": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+            },
+            "unlockedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+            },
+            "updatedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+            },
+            "upgrades": {
+              "$upgradeId": {
+                "level": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6 && newData.val() % 1 === 0"
+                }
+              }
+            }
+          }
+        },
+        "selectedCharacter": {
+          ".validate": "newData.isString() && newData.val().matches(/^(nova|orbit|jax|raze|echo|regalia|kairo|luna|volt|mako|glitch|ember)$/)"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "collection": "storeCatalog",
+  "documents": [
+    { "id": "gravityhalfdead.coins.7500", "product_id": "gravityhalfdead.coins.7500", "reward_type": "coins", "reward_amount": 7500, "sort_order": 10, "art_variant": 0, "enabled": true },
+    { "id": "gravityhalfdead.coins.40000", "product_id": "gravityhalfdead.coins.40000", "reward_type": "coins", "reward_amount": 40000, "sort_order": 20, "art_variant": 1, "enabled": true },
+    { "id": "gravityhalfdead.coins.90000", "product_id": "gravityhalfdead.coins.90000", "reward_type": "coins", "reward_amount": 90000, "sort_order": 30, "art_variant": 2, "enabled": true },
+    { "id": "gravityhalfdead.coins.200000", "product_id": "gravityhalfdead.coins.200000", "reward_type": "coins", "reward_amount": 200000, "sort_order": 40, "art_variant": 3, "enabled": true },
+    { "id": "gravityhalfdead.coins.550000", "product_id": "gravityhalfdead.coins.550000", "reward_type": "coins", "reward_amount": 550000, "sort_order": 50, "art_variant": 4, "enabled": true },
+    { "id": "gravityhalfdead.coins.1250000", "product_id": "gravityhalfdead.coins.1250000", "reward_type": "coins", "reward_amount": 1250000, "sort_order": 60, "art_variant": 5, "enabled": true },
+    { "id": "gravityhalfdead.cores.5", "product_id": "gravityhalfdead.cores.5", "reward_type": "gravity_cores", "reward_amount": 5, "sort_order": 110, "art_variant": 0, "enabled": true },
+    { "id": "gravityhalfdead.cores.15", "product_id": "gravityhalfdead.cores.15", "reward_type": "gravity_cores", "reward_amount": 15, "sort_order": 120, "art_variant": 1, "enabled": true },
+    { "id": "gravityhalfdead.cores.40", "product_id": "gravityhalfdead.cores.40", "reward_type": "gravity_cores", "reward_amount": 40, "sort_order": 130, "art_variant": 2, "enabled": true },
+    { "id": "gravityhalfdead.cores.100", "product_id": "gravityhalfdead.cores.100", "reward_type": "gravity_cores", "reward_amount": 100, "sort_order": 140, "art_variant": 3, "enabled": true },
+    { "id": "gravityhalfdead.cores.250", "product_id": "gravityhalfdead.cores.250", "reward_type": "gravity_cores", "reward_amount": 250, "sort_order": 150, "art_variant": 4, "enabled": true }
+  ]
+}

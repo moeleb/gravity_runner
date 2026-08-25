@@ -20,7 +20,10 @@ dependencyResolutionManagement {
 // Android Resolver Repos Start
         def unityProjectPath = $/file:///**DIR_UNITYPROJECT**/$.replace("\\", "/")
         maven {
-            url (unityProjectPath + "/Assets/GeneratedLocalRepo/Firebase/m2repository") // Packages/com.google.firebase.firestore/Firebase/Editor/FirestoreDependencies.xml:23, Packages/com.google.firebase.app/Firebase/Editor/AppDependencies.xml:25, Packages/com.google.firebase.auth/Firebase/Editor/AuthDependencies.xml:23
+            url (unityProjectPath + "/Assets/GeneratedLocalRepo/Firebase/m2repository") // Packages/com.google.firebase.firestore/Firebase/Editor/FirestoreDependencies.xml:23, Packages/com.google.firebase.app/Firebase/Editor/AppDependencies.xml:25, Packages/com.google.firebase.auth/Firebase/Editor/AuthDependencies.xml:23, Packages/com.google.firebase.database/Firebase/Editor/DatabaseDependencies.xml:25
+        }
+        maven {
+            url "https://maven.google.com/" // Packages/com.google.ads.mobile/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:7, Packages/com.google.ads.mobile/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:12, Packages/com.google.ads.mobile/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:17, Packages/com.google.ads.mobile/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:22, Packages/com.google.ads.mobile/GoogleMobileAds/Editor/GoogleUmpDependencies.xml:7
         }
         mavenLocal()
 // Android Resolver Repos End

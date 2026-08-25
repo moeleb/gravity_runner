@@ -101,7 +101,6 @@ namespace GravityHalfDead
         public async void RegisterSuccessfulPurchase()
         {
             bootstrapState.HasMadePurchase = true;
-            bootstrapState.UnlockedCharacters.Add("raze");
             RefreshMeProfileUI();
             await SaveProfileCosmeticsAsync();
         }

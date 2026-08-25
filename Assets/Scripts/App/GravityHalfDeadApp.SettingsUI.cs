@@ -128,9 +128,9 @@ namespace GravityHalfDead
             var mainRect = gameSettingsMainPage.AddComponent<RectTransform>();
             Stretch(mainRect);
 
-            var close = MakeButton(gameSettingsMainPage.transform, "←", new Vector2(-440f, 805f),
-                new Vector2(86f, 86f), Hex("07172C"), SettingsTeal, 46, CloseGameSettings);
-            AddSettingsOutline(close.GetComponent<Image>(), new Color(SettingsTeal.r, SettingsTeal.g, SettingsTeal.b, 0.32f), 2f);
+            var close = MakeButton(gameSettingsMainPage.transform, "×", new Vector2(-440f, 805f),
+                new Vector2(86f, 86f), SettingsRed, Cream, 56, CloseGameSettings);
+            StyleSettingsCloseButton(close, 43);
 
             MakeText(gameSettingsMainPage.transform, "SETTINGS", 48, FontStyle.Bold, Cream,
                 new Vector2(0f, 805f), new Vector2(560f, 80f), TextAnchor.MiddleCenter, 2);
@@ -366,10 +366,9 @@ namespace GravityHalfDead
 
             // Fill the safe area from top to bottom. The settings overlay itself already
             // covers the COMPLETE device screen; this page occupies the full safe viewport.
-            var back = MakeButton(gameSettingsSupportPage.transform, "←", new Vector2(-446f, 814f),
-                new Vector2(96f, 96f), Hex("07172C"), SettingsTeal, 50, CloseSettingsSupportPage);
-            AddSettingsOutline(back.GetComponent<Image>(),
-                new Color(SettingsTeal.r, SettingsTeal.g, SettingsTeal.b, 0.62f), 2f);
+            var back = MakeButton(gameSettingsSupportPage.transform, "×", new Vector2(-446f, 814f),
+                new Vector2(96f, 96f), SettingsRed, Cream, 62, CloseSettingsSupportPage);
+            StyleSettingsCloseButton(back, 48);
 
             var title = MakeText(gameSettingsSupportPage.transform, "CONTACT SUPPORT", 54,
                 FontStyle.BoldAndItalic, Cream, new Vector2(0f, 814f),
@@ -496,6 +495,24 @@ namespace GravityHalfDead
             RefreshSupportIdentityText();
             RefreshSupportAttachmentPreviews();
             gameSettingsSupportPage.SetActive(false);
+        }
+
+        private void StyleSettingsCloseButton(Button button, int radius)
+        {
+            if (button == null)
+                return;
+
+            var image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                image.sprite = RoundedSprite(radius);
+                image.type = Image.Type.Sliced;
+                var glow = image.gameObject.AddComponent<Shadow>();
+                glow.effectColor = new Color(1f, 0.12f, 0.25f, 0.42f);
+                glow.effectDistance = new Vector2(0f, -5f);
+            }
+
+            button.gameObject.AddComponent<ButtonGlow>();
         }
 
         private void BuildSupportModeratorIcon(Transform parent, Vector2 position)

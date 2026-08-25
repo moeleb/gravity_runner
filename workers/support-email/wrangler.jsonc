@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gravity-support-email",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-24",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "FIREBASE_PROJECT_ID": "gravity-half-dead",
+    "SUPPORT_TO": "mkanafani40@gmail.com",
+    "SUPPORT_FROM": "Gravity Half Dead Support <onboarding@resend.dev>"
+  }
+}

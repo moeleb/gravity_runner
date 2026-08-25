@@ -10,14 +10,27 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Each player owns their profile and every document below it, including
-    // progress, inventory, achievements, and private match history.
+    // Each player owns their profile document.
     match /users/{userId} {
       allow read, create, update, delete: if isOwner(userId);
+    }
 
-      match /{document=**} {
-        allow read, create, update, delete: if isOwner(userId);
-      }
+    match /users/{userId}/devices/{deviceId} {
+      allow read, create, update, delete: if isOwner(userId);
+    }
+
+    // Purchase analytics records are private and immutable. Public production
+    // should move creation behind server-side store receipt validation.
+    match /users/{userId}/purchases/{purchaseId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && purchaseId.matches('^[a-f0-9]{64}$')
+        && request.resource.data.product_id is string
+        && request.resource.data.reward_type in ['coins', 'gravity_cores']
+        && request.resource.data.reward_amount is int
+        && request.resource.data.reward_amount > 0
+        && request.resource.data.store_transaction_hash == purchaseId;
+      allow update, delete: if false;
     }
 
     // Signed-in players can read leaderboard entries, but only trusted server
@@ -30,6 +43,24 @@ service cloud.firestore {
     // Remote game configuration is readable by players and writable only by
     // trusted server/admin code.
     match /gameConfig/{document=**} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Store bundle contents are remotely configurable. Real-money price strings
+    // never live here; Google Play / App Store remain the source of truth.
+    match /storeCatalog/{productId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Updated only by the purchase aggregation Cloud Function.
+    match /storePopularity/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /storeProductMetrics/{productId} {
       allow read: if isSignedIn();
       allow write: if false;
     }

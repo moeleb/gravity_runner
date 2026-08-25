@@ -10,6 +10,7 @@ namespace GravityHalfDead
             // Only MISSIONS / ME / SHOP belong here. No extra Home/Trophy/Stats/Cart/Badge icon strip.
             var bottomBar = new GameObject("Responsive illustrated bottom navigation");
             bottomBar.transform.SetParent(parent, false);
+            gameBottomNavigation = bottomBar;
             var barRect = bottomBar.AddComponent<RectTransform>();
             SetRect(barRect, new Vector2(0f, -800f), new Vector2(1030f, 286f));
 
@@ -168,10 +169,12 @@ namespace GravityHalfDead
                     new Vector2(270, 0), new Vector2(180, 52), TextAnchor.MiddleCenter, 2);
             }
 
+            BuildMissionPanel(tabPanel.transform);
             BuildMeProfilePanel(tabPanel.transform);
-            var closeButton = MakeButton(tabPanel.transform, "×", new Vector2(0, -650),
+            BuildShopPanel(tabPanel.transform);
+            gameSectionCloseButton = MakeButton(tabPanel.transform, "×", new Vector2(0, -650),
                 new Vector2(108, 108), Hex("B92E48"), Cream, 64, HideGameTab);
-            closeButton.gameObject.AddComponent<ButtonGlow>();
+            gameSectionCloseButton.gameObject.AddComponent<ButtonGlow>();
 
             // The navigation remains visible and clickable above the section content.
             bottomBar.transform.SetAsLastSibling();
@@ -184,16 +187,37 @@ namespace GravityHalfDead
         private void ShowGameTab(string tabName)
         {
             gameTabTitle.text = tabName;
+            var showingMissions = tabName == "MISSIONS";
             var showingMe = tabName == "ME";
-            gameGenericTabContent.SetActive(!showingMe);
+            var showingShop = tabName == "SHOP";
+            var showingFullScreenSection = showingMissions || showingMe || showingShop;
+            var sectionRect = gameTabPanel != null ? gameTabPanel.GetComponent<RectTransform>() : null;
+            if (sectionRect != null)
+            {
+                SetRect(sectionRect, showingFullScreenSection ? Vector2.zero : new Vector2(0f, 115f),
+                    showingFullScreenSection ? new Vector2(1080f, 1920f) : new Vector2(1040f, 1500f));
+            }
+            gameGenericTabContent.SetActive(!showingFullScreenSection && !showingMissions);
+            if (gameMissionsContent != null)
+                gameMissionsContent.SetActive(showingMissions);
             gameMeContent.SetActive(showingMe);
+            if (gameShopContent != null)
+                gameShopContent.SetActive(showingShop);
+            if (gameBottomNavigation != null)
+                gameBottomNavigation.SetActive(!showingFullScreenSection);
+            if (gameSectionCloseButton != null)
+                gameSectionCloseButton.gameObject.SetActive(showingMissions);
+            if (topPlayerSummaryRoot != null)
+                topPlayerSummaryRoot.SetActive(!showingMissions && auth != null && auth.CurrentUser != null);
 
             if (tabName == "MISSIONS")
             {
-                gameTabSubtitle.text = "ACTIVE OBJECTIVES";
-                SetGameTabCard(0, "DAILY BREACH", "Complete three runs in any mode.", "0 / 3", Cyan);
-                SetGameTabCard(1, "GRAVITY SURVIVOR", "Stay alive for 90 seconds in Endless.", "0 / 90s", Coral);
-                SetGameTabCard(2, "NEON COLLECTOR", "Collect twenty-five breach shards.", "0 / 25", NeonPink);
+                gameTabTitle.text = string.Empty;
+                gameTabSubtitle.text = string.Empty;
+                ShowMissionSection(true);
+                RefreshMissionUI();
+                if (realtimeMissionStateReference == null)
+                    _ = StartMissionRealtimeSyncAsync();
             }
             else if (tabName == "ME")
             {
@@ -201,6 +225,17 @@ namespace GravityHalfDead
                 gameTabSubtitle.text = string.Empty;
                 ShowMeSection(1);
                 RefreshMeProfileUI();
+            }
+            else if (tabName == "SHOP")
+            {
+                gameTabTitle.text = string.Empty;
+                gameTabSubtitle.text = string.Empty;
+                // The bottom SHOP card keeps opening Boosts. Currency plus buttons call
+                // OpenStoreForCurrency after this and switch to the Store catalog.
+                ShowShopSubPage(1);
+                RefreshShopUI();
+                if (realtimeShopPlayerReference == null)
+                    _ = StartShopRealtimeSyncAsync();
             }
             else
             {
@@ -230,6 +265,25 @@ namespace GravityHalfDead
             gameTabPanel.blocksRaycasts = false;
             gameTabPanel.interactable = false;
             gameTabPanel.gameObject.SetActive(false);
+            if (gameBottomNavigation != null)
+                gameBottomNavigation.SetActive(true);
+            if (topPlayerSummaryRoot != null)
+                topPlayerSummaryRoot.SetActive(auth != null && auth.CurrentUser != null);
+        }
+
+        private void OpenStoreForCurrency(StoreCurrencyKind currencyKind)
+        {
+            ShowGameTab("SHOP");
+            selectedStoreCurrency = currencyKind;
+            ShowShopSubPage(0);
+            RefreshStoreCatalogUI();
+        }
+
+        private void OpenBoostsStore()
+        {
+            ShowGameTab("SHOP");
+            ShowShopSubPage(1);
+            RefreshShopUI();
         }
     }
 }

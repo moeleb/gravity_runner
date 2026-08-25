@@ -11,6 +11,9 @@ dependencies {
     implementation 'com.google.android.libraries.identity.googleid:googleid:1.2.0'
     implementation 'com.google.firebase:firebase-messaging:25.1.1'
 // Android Resolver Dependencies Start
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4' // Packages/com.google.ads.mobile/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:12
+    implementation 'androidx.fragment:fragment:1.7.1' // Packages/com.google.ads.mobile/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:22
+    implementation 'androidx.lifecycle:lifecycle-process:2.6.2' // Packages/com.google.ads.mobile/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:17
     implementation 'com.android.support:appcompat-v7:25.3.1' // Facebook.Unity.Editor.AndroidSupportLibraryResolver.addSupportLibraryDependency
     implementation 'com.android.support:cardview-v7:25.3.1' // Facebook.Unity.Editor.AndroidSupportLibraryResolver.addSupportLibraryDependency
     implementation 'com.android.support:customtabs:25.3.1' // Facebook.Unity.Editor.AndroidSupportLibraryResolver.addSupportLibraryDependency
@@ -20,12 +23,16 @@ dependencies {
     implementation 'com.facebook.android:facebook-gamingservices:[18.3.0,19)' // Assets/FacebookSDK/Plugins/Editor/Dependencies.xml:9
     implementation 'com.facebook.android:facebook-login:[18.3.0,19)' // Assets/FacebookSDK/Plugins/Editor/Dependencies.xml:7
     implementation 'com.facebook.android:facebook-share:[18.3.0,19)' // Assets/FacebookSDK/Plugins/Editor/Dependencies.xml:8
-    implementation 'com.google.android.gms:play-services-base:18.10.0' // Packages/com.google.firebase.app/Firebase/Editor/AppDependencies.xml:20
-    implementation 'com.google.firebase:firebase-analytics:23.2.0' // Packages/com.google.firebase.auth/Firebase/Editor/AuthDependencies.xml:18
+    implementation 'com.google.android.gms:play-services-ads:25.4.0' // Packages/com.google.ads.mobile/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:7
+    implementation 'com.google.android.gms:play-services-base:18.10.0' // Packages/com.google.firebase.database/Firebase/Editor/DatabaseDependencies.xml:20
+    implementation 'com.google.android.ump:user-messaging-platform:4.0.0' // Packages/com.google.ads.mobile/GoogleMobileAds/Editor/GoogleUmpDependencies.xml:7
+    implementation 'com.google.firebase:firebase-analytics:23.2.0' // Packages/com.google.firebase.database/Firebase/Editor/DatabaseDependencies.xml:18
     implementation 'com.google.firebase:firebase-app-unity:13.15.0' // Packages/com.google.firebase.app/Firebase/Editor/AppDependencies.xml:25
     implementation 'com.google.firebase:firebase-auth:24.2.0' // Packages/com.google.firebase.auth/Firebase/Editor/AuthDependencies.xml:16
     implementation 'com.google.firebase:firebase-auth-unity:13.15.0' // Packages/com.google.firebase.auth/Firebase/Editor/AuthDependencies.xml:23
     implementation 'com.google.firebase:firebase-common:22.2.0' // Packages/com.google.firebase.app/Firebase/Editor/AppDependencies.xml:16
+    implementation 'com.google.firebase:firebase-database:22.0.1' // Packages/com.google.firebase.database/Firebase/Editor/DatabaseDependencies.xml:16
+    implementation 'com.google.firebase:firebase-database-unity:13.15.0' // Packages/com.google.firebase.database/Firebase/Editor/DatabaseDependencies.xml:25
     implementation 'com.google.firebase:firebase-firestore:26.5.0' // Packages/com.google.firebase.firestore/Firebase/Editor/FirestoreDependencies.xml:16
     implementation 'com.google.firebase:firebase-firestore-unity:13.15.0' // Packages/com.google.firebase.firestore/Firebase/Editor/FirestoreDependencies.xml:23
     implementation 'com.parse.bolts:bolts-android:1.4.0' // Assets/FacebookSDK/Plugins/Editor/Dependencies.xml:4
