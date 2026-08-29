@@ -6,6 +6,10 @@
       ".read": "auth != null",
       ".write": false
     },
+    "achievementCatalog": {
+      ".read": "auth != null",
+      ".write": false
+    },
     "players": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
@@ -17,6 +21,9 @@
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
         },
         "gravityCores": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+        },
+        "discShards": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
         },
         "highScore": {
@@ -188,6 +195,78 @@
         },
         "selectedCharacter": {
           ".validate": "newData.isString() && newData.val().matches(/^(nova|orbit|jax|raze|echo|regalia|kairo|luna|volt|mako|glitch|ember)$/)"
+        },
+        "discs": {
+          "$discId": {
+            ".validate": "$discId.matches(/^(core_runner|pulse_ring|neon_orbit|ion_skimmer|void_circuit|comet_drive|prism_halo|rift_bloom|quantum_crown|solar_forge|abyss_engine|aurora_sovereign)$/)",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "unlocked": {
+              ".validate": "newData.isBoolean()"
+            },
+            "unlockKind": {
+              ".validate": "newData.isString() && newData.val().matches(/^(starter|coins|shards|store)$/)"
+            },
+            "unlockCost": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+            },
+            "unlockedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+            },
+            "updatedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "selectedDisc": {
+          ".validate": "newData.isString() && newData.val().matches(/^(core_runner|pulse_ring|neon_orbit|ion_skimmer|void_circuit|comet_drive|prism_halo|rift_bloom|quantum_crown|solar_forge|abyss_engine|aurora_sovereign)$/)"
+        },
+        "discPurchases": {
+          "$transactionHash": {
+            ".validate": "$transactionHash.matches(/^[a-f0-9]{64}$/) && newData.hasChildren(['productId', 'discId', 'localizedPrice', 'purchasedAt'])",
+            "productId": {
+              ".validate": "newData.isString() && newData.val().matches(/^gravityhalfdead[.]disc[.][a-z_]{3,40}$/)"
+            },
+            "discId": {
+              ".validate": "newData.isString() && newData.val().matches(/^(solar_forge|abyss_engine|aurora_sovereign)$/)"
+            },
+            "localizedPrice": {
+              ".validate": "newData.isString() && newData.val().length <= 64"
+            },
+            "purchasedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "achievementMetrics": {
+          "$metric": {
+            ".validate": "$metric.matches(/^(lifetimeCoinsCollected|totalDistanceMeters|crystalsCollected|noAcrobaticsBestScore|ceilingDistanceMeters|longestRunSeconds|magnetCoinsCollected|crystalRevives|updatedAt)$/) && newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0 && ($metric !== 'updatedAt' || newData.val() <= now + 10000)"
+          }
+        },
+        "achievementProgress": {
+          "$achievementId": {
+            ".validate": "data.exists() && newData.child('number').val() === data.child('number').val() && newData.child('progress').val() === data.child('progress').val() && newData.child('completedTiers').val() === data.child('completedTiers').val() && newData.child('tierCount').val() === data.child('tierCount').val() && newData.child('complete').val() === data.child('complete').val() && newData.child('updatedAt').val() === data.child('updatedAt').val()",
+            "$other": {
+              ".validate": "$other.matches(/^(number|progress|completedTiers|tierCount|complete|updatedAt)$/)"
+            }
+          }
+        },
+        "badges": {
+          "$badgeId": {
+            ".validate": "$badgeId.matches(/^achievement_badge_(0[1-9]|1[0-7])$/) && data.exists() && data.child('unlocked').val() === true && newData.child('unlocked').val() === true && newData.child('achievementId').val() === data.child('achievementId').val() && newData.child('achievementNumber').val() === data.child('achievementNumber').val() && newData.child('unlockedAt').val() === data.child('unlockedAt').val() && ((newData.child('collected').val() === data.child('collected').val() && newData.child('collectedAt').val() === data.child('collectedAt').val()) || (data.child('collected').val() === false && newData.child('collected').val() === true && newData.child('collectedAt').isNumber() && newData.child('collectedAt').val() <= now + 10000))"
+          }
+        },
+        "pendingBadgeUnlocks": {
+          "$badgeId": {
+            ".validate": "$badgeId.matches(/^achievement_badge_(0[1-9]|1[0-7])$/) && data.exists() && newData.child('achievementId').val() === data.child('achievementId').val() && newData.child('achievementNumber').val() === data.child('achievementNumber').val() && newData.child('unlockedAt').val() === data.child('unlockedAt').val() && ((newData.child('status').val() === data.child('status').val() && newData.child('acknowledgedAt').val() === data.child('acknowledgedAt').val()) || (data.child('status').val() === 'pending' && newData.child('status').val() === 'acknowledged' && newData.child('acknowledgedAt').isNumber() && newData.child('acknowledgedAt').val() <= now + 10000))"
+          }
         },
         "updatedAt": {
           ".validate": "newData.isNumber() && newData.val() <= now + 10000"

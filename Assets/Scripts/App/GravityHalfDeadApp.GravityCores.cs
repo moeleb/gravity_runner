@@ -90,6 +90,7 @@ namespace GravityHalfDead
                     : Math.Max(0L, bootstrapState.GravityCores - cost);
                 gravityCoreRevivesThisRun++;
                 RefreshGravityCoreHeader();
+                RecordAchievementCrystalRevive();
                 _ = MirrorGravityCoresToFirestoreAsync(expectedUserId);
                 return true;
             }

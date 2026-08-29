@@ -56,8 +56,8 @@ namespace GravityHalfDead
         private CanvasGroup playerProfileCaptureFlashGroup;
         private bool playerProfileShareInProgress;
 
-        // Dedicated identity editor. Portrait and Frame are intentionally empty until their
-        // catalogues are ready; the editor only exposes the currently selected portrait and name.
+        // Dedicated identity editor. Achievement badges are collected server-side and appear
+        // only after their unlock animation has been acknowledged by the player.
         private GameObject playerProfileEditorOverlay;
         private RawImage playerProfileEditorAvatarImage;
         private Text playerProfileEditorAvatarFallback;
@@ -75,7 +75,6 @@ namespace GravityHalfDead
         private Text playerProfileNameContinueText;
         private Text playerProfileNamePopupStatusText;
         private string playerProfileOriginalName = string.Empty;
-        private bool playerProfileNameEditing;
         private bool playerProfileNameUpdateInProgress;
         private bool playerProfileNameCooldownRefreshInProgress;
         private long playerProfileNameChangedAtUtcMs;
@@ -137,7 +136,6 @@ namespace GravityHalfDead
             if (playerProfileEditorOverlay == null)
                 BuildPlayerProfileEditor();
 
-            playerProfileNameEditing = false;
             playerProfileNameUpdateInProgress = false;
             LoadPlayerProfileNameCooldownFromLocal();
             RefreshPlayerProfileEditorUI();
@@ -150,7 +148,6 @@ namespace GravityHalfDead
         private void ClosePlayerProfileEditor()
         {
             ClosePlayerProfileNamePopup();
-            playerProfileNameEditing = false;
             playerProfileNameUpdateInProgress = false;
             if (playerProfileEditorOverlay != null)
                 playerProfileEditorOverlay.SetActive(false);
@@ -196,7 +193,7 @@ namespace GravityHalfDead
             AddProfileOutline(close.GetComponent<Image>(), new Color(1f, 0.23f, 0.47f, 0.90f), 2f);
             close.gameObject.AddComponent<ButtonGlow>();
 
-            // One clean square portrait. There are deliberately no badges or circular accessory slots.
+            // One clean square portrait. Badges live in their own ordered category below.
             var portraitGlow = CreateCard("Current Portrait Glow", panel.transform, new Vector2(0f, 390f),
                 new Vector2(322f, 322f), new Color(Cyan.r, Cyan.g, Cyan.b, 0.26f), 32);
             AddProfileOutline(portraitGlow.GetComponent<Image>(), new Color(Cyan.r, Cyan.g, Cyan.b, 0.92f), 2.5f);
@@ -242,13 +239,16 @@ namespace GravityHalfDead
                 "NAME CHANGES ARE AVAILABLE ONCE EVERY 7 DAYS", 18, FontStyle.Bold, Muted,
                 new Vector2(0f, 30f), new Vector2(790f, 42f), TextAnchor.MiddleCenter, 2);
 
-            // Exactly two rectangular categories. No Badges tab and no circular add controls.
-            playerProfileEditorPortraitTab = MakeButton(panel.transform, "PORTRAIT", new Vector2(-217f, -83f),
-                new Vector2(420f, 92f), Hex("124D75"), Cream, 26,
+            // Ordered profile categories: Avatar (Portrait) -> Frame -> Badge.
+            playerProfileEditorPortraitTab = MakeButton(panel.transform, "PORTRAIT", new Vector2(-286f, -83f),
+                new Vector2(272f, 92f), Hex("124D75"), Cream, 23,
                 () => ShowPlayerProfileEditorTab(true));
-            playerProfileEditorFrameTab = MakeButton(panel.transform, "FRAME", new Vector2(217f, -83f),
-                new Vector2(420f, 92f), Hex("101B36"), Muted, 26,
+            playerProfileEditorFrameTab = MakeButton(panel.transform, "FRAME", new Vector2(0f, -83f),
+                new Vector2(272f, 92f), Hex("101B36"), Muted, 23,
                 () => ShowPlayerProfileEditorTab(false));
+            playerProfileEditorBadgeTab = MakeButton(panel.transform, "BADGE", new Vector2(286f, -83f),
+                new Vector2(272f, 92f), Hex("101B36"), Muted, 23,
+                () => ShowPlayerProfileEditorTab(2));
 
             var contentHost = CreateCard("Empty Profile Options", panel.transform, new Vector2(0f, -380f),
                 new Vector2(854f, 470f), Hex("081226"), 30);
@@ -259,6 +259,10 @@ namespace GravityHalfDead
             playerProfileEditorFrameContent = new GameObject("Frame Options - Empty");
             playerProfileEditorFrameContent.transform.SetParent(contentHost.transform, false);
             Stretch(playerProfileEditorFrameContent.AddComponent<RectTransform>());
+            playerProfileEditorBadgeContent = new GameObject("Collected Achievement Badges");
+            playerProfileEditorBadgeContent.transform.SetParent(contentHost.transform, false);
+            Stretch(playerProfileEditorBadgeContent.AddComponent<RectTransform>());
+            BuildProfileBadgeCollection(playerProfileEditorBadgeContent.transform);
 
             var done = MakeButton(panel.transform, "DONE", new Vector2(0f, -676f),
                 new Vector2(520f, 100f), Cyan, Ink, 30, ClosePlayerProfileEditor);
@@ -313,13 +317,21 @@ namespace GravityHalfDead
         }
 
         private void ShowPlayerProfileEditorTab(bool portraitSelected)
+            => ShowPlayerProfileEditorTab(portraitSelected ? 0 : 1);
+
+        private void ShowPlayerProfileEditorTab(int section)
         {
             if (playerProfileEditorPortraitContent != null)
-                playerProfileEditorPortraitContent.SetActive(portraitSelected);
+                playerProfileEditorPortraitContent.SetActive(section == 0);
             if (playerProfileEditorFrameContent != null)
-                playerProfileEditorFrameContent.SetActive(!portraitSelected);
-            SetPlayerProfileEditorTabPalette(playerProfileEditorPortraitTab, portraitSelected);
-            SetPlayerProfileEditorTabPalette(playerProfileEditorFrameTab, !portraitSelected);
+                playerProfileEditorFrameContent.SetActive(section == 1);
+            if (playerProfileEditorBadgeContent != null)
+                playerProfileEditorBadgeContent.SetActive(section == 2);
+            SetPlayerProfileEditorTabPalette(playerProfileEditorPortraitTab, section == 0);
+            SetPlayerProfileEditorTabPalette(playerProfileEditorFrameTab, section == 1);
+            SetPlayerProfileEditorTabPalette(playerProfileEditorBadgeTab, section == 2);
+            if (section == 2)
+                RefreshProfileBadgeCollectionUI();
         }
 
         private static void SetPlayerProfileEditorTabPalette(Button button, bool selected)
@@ -444,7 +456,6 @@ namespace GravityHalfDead
                 BuildPlayerProfileNamePopup();
 
             playerProfileOriginalName = CurrentPlayerProfileDisplayName();
-            playerProfileNameEditing = true;
             playerProfileNamePopupInput.SetTextWithoutNotify(playerProfileOriginalName);
             playerProfileNamePopup.transform.SetAsLastSibling();
             playerProfileNamePopup.SetActive(true);
@@ -462,7 +473,6 @@ namespace GravityHalfDead
             if (playerProfileNameUpdateInProgress)
                 return;
 
-            playerProfileNameEditing = false;
             if (playerProfileNamePopupInput != null)
                 playerProfileNamePopupInput.DeactivateInputField();
             if (playerProfileNamePopup != null)
@@ -601,7 +611,6 @@ namespace GravityHalfDead
                     Debug.LogWarning("Player name refresh delayed: " + exception.Message);
                 }
 
-                playerProfileNameEditing = false;
                 if (playerProfileEditorNameButtonText != null)
                     playerProfileEditorNameButtonText.text = "EDIT";
                 if (playerProfileEditorNameInput != null)
@@ -1842,6 +1851,16 @@ namespace GravityHalfDead
                 RefreshMeProfileUI();
                 if (realtimeCharacterPlayerReference == null)
                     _ = StartCharacterRealtimeSyncAsync();
+            }
+            else if (showingDiscs)
+            {
+                previewDiscId = string.IsNullOrWhiteSpace(bootstrapState.SelectedDisc)
+                    ? "core_runner" : bootstrapState.SelectedDisc;
+                RefreshDiscCollectionUI();
+                ResetDiscCollectionScroll();
+                if (realtimeDiscPlayerReference == null)
+                    _ = StartDiscRealtimeSyncAsync();
+                ConfigureDiscIap();
             }
         }
 

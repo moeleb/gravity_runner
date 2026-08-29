@@ -28,22 +28,6 @@ namespace GravityHalfDead
             mePowerupsContent.SetActive(false);
         }
 
-        private void BuildMeDiscsPanel(Transform parent)
-        {
-            // Reserved for the future disc collection. Keep this page intentionally empty while
-            // preserving the same responsive, full-screen ME shell and navigation treatment.
-            meDiscsContent = new GameObject("ME · Empty Discs Tab");
-            meDiscsContent.transform.SetParent(parent, false);
-            var contentRect = meDiscsContent.AddComponent<RectTransform>();
-            Stretch(contentRect);
-
-            var background = CreateImage("Discs deep void", meDiscsContent.transform,
-                Hex("010611"), FullStretch());
-            background.raycastTarget = false;
-            BuildUpgradesCircuitBackdrop(meDiscsContent.transform);
-            meDiscsContent.SetActive(false);
-        }
-
         private void BuildUpgradesFixedHeader(Transform parent)
         {
             var header = new GameObject("Fixed upgrades header");

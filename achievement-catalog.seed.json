@@ -1,0 +1,121 @@
+{
+  "mission_control": {
+    "number": 1,
+    "title": "MISSION CONTROL",
+    "description": "Complete missions",
+    "thresholds": [7, 50, 210, 300],
+    "tierLabels": ["7", "50", "210", "300"]
+  },
+  "coin_collector": {
+    "number": 2,
+    "title": "COIN COLLECTOR",
+    "description": "Collect G Coins overall",
+    "thresholds": [10000, 25000, 50000, 100000],
+    "tierLabels": ["10K", "25K", "50K", "100K"]
+  },
+  "master_of_crystals": {
+    "number": 3,
+    "title": "MASTER OF CRYSTALS",
+    "description": "Collect Crystals overall",
+    "thresholds": [10, 25, 50, 100],
+    "tierLabels": ["10", "25", "50", "100"]
+  },
+  "no_acrobatics": {
+    "number": 4,
+    "title": "NO ACROBATICS",
+    "description": "Best one-run score without jumping or rolling",
+    "thresholds": [75000, 300000, 750000, 1500000],
+    "tierLabels": ["75K", "300K", "750K", "1.5M"]
+  },
+  "gravity_master": {
+    "number": 5,
+    "title": "GRAVITY MASTER",
+    "description": "Travel distance while running on the ceiling",
+    "thresholds": [500, 2000, 10000, 25000],
+    "tierLabels": ["500 m", "2 km", "10 km", "25 km"]
+  },
+  "born_survivor": {
+    "number": 6,
+    "title": "BORN SURVIVOR",
+    "description": "Survive continuously in one run",
+    "thresholds": [120, 300, 600, 1200],
+    "tierLabels": ["2 min", "5 min", "10 min", "20 min"]
+  },
+  "into_the_void": {
+    "number": 7,
+    "title": "INTO THE VOID",
+    "description": "Travel total lifetime distance",
+    "thresholds": [25000, 100000, 500000, 2000000],
+    "tierLabels": ["25 km", "100 km", "500 km", "2,000 km"]
+  },
+  "power_hungry": {
+    "number": 8,
+    "title": "POWER HUNGRY",
+    "description": "Collect power-ups overall",
+    "thresholds": [100, 1000, 5000, 10000],
+    "tierLabels": ["100", "1K", "5K", "10K"]
+  },
+  "magnetic_force": {
+    "number": 9,
+    "title": "MAGNETIC FORCE",
+    "description": "Upgrade Magnet",
+    "thresholds": [2, 3, 4, 6],
+    "tierLabels": ["Lv.2", "Lv.3", "Lv.4", "Max Lv.6"]
+  },
+  "wall_walker": {
+    "number": 10,
+    "title": "WALL WALKER",
+    "description": "Upgrade Wall Walk",
+    "thresholds": [2, 3, 4, 6],
+    "tierLabels": ["Lv.2", "Lv.3", "Lv.4", "Max Lv.6"]
+  },
+  "speed_demon": {
+    "number": 11,
+    "title": "SPEED DEMON",
+    "description": "Upgrade Speed Boost",
+    "thresholds": [2, 3, 4, 6],
+    "tierLabels": ["Lv.2", "Lv.3", "Lv.4", "Max Lv.6"]
+  },
+  "shield_master": {
+    "number": 12,
+    "title": "SHIELD MASTER",
+    "description": "Upgrade Shield",
+    "thresholds": [2, 3, 4, 6],
+    "tierLabels": ["Lv.2", "Lv.3", "Lv.4", "Max Lv.6"]
+  },
+  "untouchable": {
+    "number": 13,
+    "title": "UNTOUCHABLE",
+    "description": "Upgrade Invulnerability",
+    "thresholds": [2, 3, 4, 6],
+    "tierLabels": ["Lv.2", "Lv.3", "Lv.4", "Max Lv.6"]
+  },
+  "time_lord": {
+    "number": 14,
+    "title": "TIME LORD",
+    "description": "Upgrade Time Increase",
+    "thresholds": [1, 2, 3],
+    "tierLabels": ["Lv.1", "Lv.2", "Max Lv.3"]
+  },
+  "everything_is_mine": {
+    "number": 15,
+    "title": "EVERYTHING IS MINE",
+    "description": "Max out power-ups",
+    "thresholds": [1, 3, 5, 6],
+    "tierLabels": ["1 MAX", "3 MAX", "5 MAX", "6 MAX"]
+  },
+  "magnet_riches": {
+    "number": 16,
+    "title": "MAGNET RICHES",
+    "description": "Collect G Coins using Magnet",
+    "thresholds": [500, 1000, 2500, 10000],
+    "tierLabels": ["500", "1K", "2.5K", "10K"]
+  },
+  "second_chance": {
+    "number": 17,
+    "title": "SECOND CHANCE",
+    "description": "Revive with Crystals",
+    "thresholds": [1, 10, 20, 50],
+    "tierLabels": ["1 time", "10 times", "20 times", "50 times"]
+  }
+}

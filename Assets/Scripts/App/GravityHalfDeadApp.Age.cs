@@ -89,6 +89,10 @@ namespace GravityHalfDead
         private ScrollRect countryScrollRect;
         private readonly List<GameObject> countryRowPool = new();
         private Text countryResultCountText;
+        private Text countrySelectionStatusText;
+        private Button countryConfirmButton;
+        private Text countryConfirmButtonLabel;
+        private Text onboardingStatusText;
         private bool countryDropdownOpen;
 
         // Static local textures, one exact file per ISO country code. Keeping each flag separate prevents
@@ -101,6 +105,8 @@ namespace GravityHalfDead
         private Slider ageStepSlider;
         private Text ageStepValueText;
         private Text ageStepHintText;
+        private Image ageStepBandBadge;
+        private Text ageStepBandText;
 
         // ── Step indicator ──────────────────────────────────────────────────
         private Text stepIndicator1;
@@ -117,25 +123,60 @@ namespace GravityHalfDead
         {
             var screen = CreateScreen("Age");
 
+            // Screen-specific atmosphere keeps the dark space identity while giving the
+            // onboarding screen its own energetic focal area. These layers never intercept input.
+            var cyanAtmosphere = CreateCard("Age cyan atmosphere", screen.transform,
+                new Vector2(-390f, 570f), new Vector2(620f, 620f),
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.075f), 64);
+            cyanAtmosphere.GetComponent<Image>().raycastTarget = false;
+            var coralAtmosphere = CreateCard("Age coral atmosphere", screen.transform,
+                new Vector2(430f, 265f), new Vector2(520f, 520f),
+                new Color(Coral.r, Coral.g, Coral.b, 0.065f), 64);
+            coralAtmosphere.GetComponent<Image>().raycastTarget = false;
+
             // ── Header ──────────────────────────────────────────────────────
-            MakeText(screen.transform, "AGE CHECK", 28, FontStyle.Bold, Cyan,
-                new Vector2(0, 780), new Vector2(760, 55), TextAnchor.MiddleCenter, 4);
-            MakeText(screen.transform, "Before we bend gravity…", 55, FontStyle.Bold, Cream,
-                new Vector2(0, 690), new Vector2(940, 100), TextAnchor.MiddleCenter);
-            MakeText(screen.transform, "Tell us your age and region so we can shape a safer experience.", 27,
-                FontStyle.Normal, Muted, new Vector2(0, 610), new Vector2(850, 90), TextAnchor.MiddleCenter);
+            var onboardingPill = CreateCard("Onboarding status", screen.transform,
+                new Vector2(0f, 800f), new Vector2(360f, 52f),
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.16f), 26);
+            CreateImage("Onboarding live dot", onboardingPill.transform, Green,
+                Centered(new Vector2(-145f, 0f), new Vector2(12f, 12f)), RoundedSprite(6)).raycastTarget = false;
+            onboardingStatusText = MakeText(onboardingPill.transform, "PLAYER SETUP  •  1 OF 2", 19, FontStyle.Bold, Cyan,
+                new Vector2(10f, 0f), new Vector2(310f, 34f), TextAnchor.MiddleCenter, 2);
+
+            var heroTitle = MakeText(screen.transform, "BEFORE WE BEND GRAVITY", 53, FontStyle.Bold, Cream,
+                new Vector2(0, 708), new Vector2(970, 90), TextAnchor.MiddleCenter, 1);
+            var heroShadow = heroTitle.gameObject.AddComponent<Shadow>();
+            heroShadow.effectColor = new Color(Cyan.r, Cyan.g, Cyan.b, 0.38f);
+            heroShadow.effectDistance = new Vector2(0f, -4f);
+            MakeText(screen.transform, "Choose your age first. We use only an age range to shape a safer experience.", 25,
+                FontStyle.Normal, Hex("D6E8F7"), new Vector2(0, 630), new Vector2(890, 76), TextAnchor.MiddleCenter);
 
             // ── Decorative characters ───────────────────────────────────────
-            AddCharacter(screen.transform, "Art/Characters/atlas", new Vector2(-310, 260), new Vector2(400, 600), -4f, 0.7f);
-            AddCharacter(screen.transform, "Art/Characters/nova", new Vector2(0, 330), new Vector2(430, 650), 0f, 0.95f);
-            AddCharacter(screen.transform, "Art/Characters/pip", new Vector2(320, 270), new Vector2(365, 550), 4f, 1.25f);
+            CreateAgeCharacterGlow(screen.transform, new Vector2(-315f, 305f), Cyan, 280f);
+            CreateAgeCharacterGlow(screen.transform, new Vector2(0f, 360f), Coral, 320f);
+            CreateAgeCharacterGlow(screen.transform, new Vector2(320f, 305f), NeonPurple, 270f);
+            AddCharacter(screen.transform, "Art/Characters/atlas", new Vector2(-310, 285), new Vector2(400, 600), -4f, 0.7f);
+            AddCharacter(screen.transform, "Art/Characters/nova", new Vector2(0, 350), new Vector2(430, 650), 0f, 0.95f);
+            AddCharacter(screen.transform, "Art/Characters/pip", new Vector2(320, 290), new Vector2(365, 550), 4f, 1.25f);
 
             // ── Step indicator ──────────────────────────────────────────────
             BuildStepIndicator(screen.transform);
 
             // ── Age card ────────────────────────────────────────────────────
-            var card = CreateCard("Age Card", screen.transform, new Vector2(0, -175), new Vector2(890, 860), Card, 42);
+            var cardShadow = CreateCard("Age Card shadow", screen.transform,
+                new Vector2(0f, -204f), new Vector2(914f, 832f), new Color(0f, 0f, 0f, 0.42f), 46);
+            cardShadow.GetComponent<Image>().raycastTarget = false;
+            var cardGlow = CreateCard("Age Card cyan lift", screen.transform,
+                new Vector2(0f, -180f), new Vector2(914f, 830f),
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.14f), 46);
+            cardGlow.GetComponent<Image>().raycastTarget = false;
+            var card = CreateCard("Age Card", screen.transform, new Vector2(0, -184),
+                new Vector2(890, 810), Hex("12375F"), 42);
             card.transform.SetAsLastSibling();
+            CreateImage("Age Card top energy rail", card.transform, Cyan,
+                Centered(new Vector2(-185f, 399f), new Vector2(420f, 8f)), RoundedSprite(4)).raycastTarget = false;
+            CreateImage("Age Card warm energy rail", card.transform, Coral,
+                Centered(new Vector2(285f, 399f), new Vector2(180f, 8f)), RoundedSprite(4)).raycastTarget = false;
             ageStepGroup = card.AddComponent<CanvasGroup>();
             ageStepGroup.alpha = 1f;
             ageStepGroup.blocksRaycasts = true;
@@ -143,8 +184,12 @@ namespace GravityHalfDead
             BuildAgeStep(card.transform);
 
             // ── Country card (hidden) ───────────────────────────────────────
-            var countryCard = CreateCard("Country Card", screen.transform, new Vector2(0, -175), new Vector2(890, 860), Card, 42);
+            var countryCard = CreateCard("Country Card", screen.transform, new Vector2(0, -184), new Vector2(890, 810), Hex("12375F"), 42);
             countryCard.transform.SetAsLastSibling();
+            CreateImage("Country Card top energy rail", countryCard.transform, Green,
+                Centered(new Vector2(-185f, 399f), new Vector2(420f, 8f)), RoundedSprite(4)).raycastTarget = false;
+            CreateImage("Country Card cyan energy rail", countryCard.transform, Cyan,
+                Centered(new Vector2(285f, 399f), new Vector2(180f, 8f)), RoundedSprite(4)).raycastTarget = false;
             countryStepGroup = countryCard.AddComponent<CanvasGroup>();
             countryStepGroup.alpha = 0f;
             countryStepGroup.blocksRaycasts = false;
@@ -153,8 +198,18 @@ namespace GravityHalfDead
             BuildCountryStep(countryCard.transform);
 
             // ── Footer ──────────────────────────────────────────────────────
-            MakeText(screen.transform, "You can review privacy choices later in Settings.", 21,
-                FontStyle.Normal, Muted, new Vector2(0, -845), new Vector2(850, 45), TextAnchor.MiddleCenter);
+            MakeText(screen.transform, "PRIVACY  •  Your choices remain available in Settings.", 20,
+                FontStyle.Normal, Hex("AFC9E2"), new Vector2(0, -842), new Vector2(850, 45), TextAnchor.MiddleCenter);
+        }
+
+        private void CreateAgeCharacterGlow(Transform parent, Vector2 position, Color accent, float size)
+        {
+            var glowColor = accent;
+            glowColor.a = 0.12f;
+            var glow = CreateImage("Character spotlight", parent, glowColor,
+                Centered(position, new Vector2(size, size)), RoundedSprite(64));
+            glow.raycastTarget = false;
+            glow.gameObject.AddComponent<SoftPulse>();
         }
 
         // ────────────────────────────────────────────────────────────────────
@@ -163,31 +218,37 @@ namespace GravityHalfDead
 
         private void BuildStepIndicator(Transform parent)
         {
-            var dot1Obj = CreateImage("Step Dot 1", parent, Cyan,
-                Centered(new Vector2(-60, 490), new Vector2(22, 22)), RoundedSprite(11));
+            var stepPill = CreateCard("Age flow progress", parent, new Vector2(0f, 500f),
+                new Vector2(330f, 74f), new Color(0.025f, 0.09f, 0.16f, 0.90f), 37);
+            stepPill.GetComponent<Image>().raycastTarget = false;
+
+            var dot1Obj = CreateImage("Step Dot 1", stepPill.transform, Cyan,
+                Centered(new Vector2(-115, 0), new Vector2(34, 34)), RoundedSprite(17));
             stepDot1 = dot1Obj;
-            stepIndicator1 = MakeText(parent, "1", 16, FontStyle.Bold, Ink,
-                new Vector2(-60, 490), new Vector2(22, 22), TextAnchor.MiddleCenter);
+            stepIndicator1 = MakeText(stepPill.transform, "1", 17, FontStyle.Bold, Ink,
+                new Vector2(-115, 0), new Vector2(34, 34), TextAnchor.MiddleCenter);
 
-            stepConnector = CreateImage("Step Connector", parent, new Color(Cyan.r, Cyan.g, Cyan.b, 0.35f),
-                Centered(new Vector2(0, 490), new Vector2(56, 4)), RoundedSprite(2));
+            stepConnector = CreateImage("Step Connector", stepPill.transform, new Color(Cyan.r, Cyan.g, Cyan.b, 0.38f),
+                Centered(new Vector2(0, 0), new Vector2(84, 5)), RoundedSprite(3));
 
-            var dot2Obj = CreateImage("Step Dot 2", parent, CardSoft,
-                Centered(new Vector2(60, 490), new Vector2(22, 22)), RoundedSprite(11));
+            var dot2Obj = CreateImage("Step Dot 2", stepPill.transform, Hex("315375"),
+                Centered(new Vector2(115, 0), new Vector2(34, 34)), RoundedSprite(17));
             stepDot2 = dot2Obj;
-            stepIndicator2 = MakeText(parent, "2", 16, FontStyle.Bold, Muted,
-                new Vector2(60, 490), new Vector2(22, 22), TextAnchor.MiddleCenter);
+            stepIndicator2 = MakeText(stepPill.transform, "2", 17, FontStyle.Bold, Muted,
+                new Vector2(115, 0), new Vector2(34, 34), TextAnchor.MiddleCenter);
 
-            MakeText(parent, "AGE", 17, FontStyle.Bold, Cyan,
-                new Vector2(-60, 465), new Vector2(80, 30), TextAnchor.MiddleCenter);
-            MakeText(parent, "COUNTRY", 17, FontStyle.Bold, Muted,
-                new Vector2(60, 465), new Vector2(100, 30), TextAnchor.MiddleCenter);
+            MakeText(stepPill.transform, "AGE", 18, FontStyle.Bold, Cyan,
+                new Vector2(-62, 0), new Vector2(76, 30), TextAnchor.MiddleCenter, 1);
+            MakeText(stepPill.transform, "REGION", 18, FontStyle.Bold, Muted,
+                new Vector2(62, 0), new Vector2(94, 30), TextAnchor.MiddleCenter, 1);
         }
 
         private void UpdateStepIndicator(int step)
         {
             if (step == 1)
             {
+                if (onboardingStatusText != null)
+                    onboardingStatusText.text = "PLAYER SETUP  •  1 OF 2";
                 stepDot1.color = Cyan;
                 stepDot2.color = CardSoft;
                 stepIndicator1.color = Ink;
@@ -196,6 +257,8 @@ namespace GravityHalfDead
             }
             else
             {
+                if (onboardingStatusText != null)
+                    onboardingStatusText.text = "PLAYER SETUP  •  2 OF 2";
                 stepDot1.color = Green;
                 stepDot2.color = Cyan;
                 stepIndicator1.color = Ink;
@@ -211,36 +274,74 @@ namespace GravityHalfDead
         private void BuildAgeStep(Transform card)
         {
             // ── Title ───────────────────────────────────────────────────────
-            MakeText(card.transform, "HOW OLD ARE YOU?", 31, FontStyle.Bold, Muted,
-                new Vector2(0, 330), new Vector2(760, 55), TextAnchor.MiddleCenter, 2);
+            MakeText(card.transform, "CHOOSE YOUR AGE", 33, FontStyle.Bold, Cream,
+                new Vector2(0, 337), new Vector2(760, 55), TextAnchor.MiddleCenter, 2);
+            MakeText(card.transform, "Slide or tap the track", 20, FontStyle.Normal, Hex("AFC9E2"),
+                new Vector2(0, 298), new Vector2(540, 34), TextAnchor.MiddleCenter);
 
             // ── Big age number (the centrepiece) ────────────────────────────
-            ageStepValueText = MakeText(card.transform, selectedAge.ToString(), 140, FontStyle.Bold, Cream,
-                new Vector2(0, 210), new Vector2(500, 190), TextAnchor.MiddleCenter);
+            var valueGlow = CreateCard("Selected age glow", card.transform, new Vector2(0f, 205f),
+                new Vector2(282f, 164f), new Color(Cyan.r, Cyan.g, Cyan.b, 0.10f), 50);
+            valueGlow.GetComponent<Image>().raycastTarget = false;
+            var valueSurface = CreateCard("Selected age surface", card.transform, new Vector2(0f, 209f),
+                new Vector2(258f, 148f), Hex("0A2747"), 46);
+            valueSurface.GetComponent<Image>().raycastTarget = false;
+            MakeText(valueSurface.transform, "AGE", 17, FontStyle.Bold, Cyan,
+                new Vector2(0f, 50f), new Vector2(150f, 28f), TextAnchor.MiddleCenter, 3);
+            ageStepValueText = MakeText(valueSurface.transform, selectedAge.ToString(), 96, FontStyle.Bold, Cream,
+                new Vector2(0, -7), new Vector2(220, 104), TextAnchor.MiddleCenter);
             ageStepValueText.gameObject.AddComponent<SoftPulse>();
 
-            // ── Description ─────────────────────────────────────────────────
+            // ── Age-band state and description ──────────────────────────────
+            var bandObject = CreateCard("Age experience badge", card.transform, new Vector2(0f, 105f),
+                new Vector2(420f, 50f), new Color(Cyan.r, Cyan.g, Cyan.b, 0.15f), 25);
+            ageStepBandBadge = bandObject.GetComponent<Image>();
+            ageStepBandText = MakeText(bandObject.transform, "ADULT EXPERIENCE", 19, FontStyle.Bold, Cyan,
+                Vector2.zero, new Vector2(380f, 32f), TextAnchor.MiddleCenter, 2);
             ageStepHintText = MakeText(card.transform,
-                "You're in control — this is saved as an age group only.",
-                24, FontStyle.Normal, Muted, new Vector2(0, 120), new Vector2(700, 60), TextAnchor.MiddleCenter);
+                "Full personalization controls",
+                22, FontStyle.Normal, Hex("D6E8F7"), new Vector2(0, 60), new Vector2(700, 44), TextAnchor.MiddleCenter);
 
             // ── Slider (cyan, always) ───────────────────────────────────────
-            ageStepSlider = BuildCyanSlider(card.transform, new Vector2(0, 10), new Vector2(760, 110));
+            ageStepSlider = BuildCyanSlider(card.transform, new Vector2(0, -15), new Vector2(710, 104));
             ageStepSlider.minValue = 3;
             ageStepSlider.maxValue = 65;
             ageStepSlider.wholeNumbers = true;
             ageStepSlider.value = selectedAge;
             ageStepSlider.onValueChanged.AddListener(OnAgeChanged);
 
+            MakeText(card.transform, "3", 17, FontStyle.Bold, Hex("8FAFCB"),
+                new Vector2(-355f, -70f), new Vector2(48f, 28f), TextAnchor.MiddleCenter);
+            MakeText(card.transform, "18", 17, FontStyle.Bold, Hex("8FAFCB"),
+                new Vector2(-183f, -70f), new Vector2(48f, 28f), TextAnchor.MiddleCenter);
+            MakeText(card.transform, "35", 17, FontStyle.Bold, Hex("8FAFCB"),
+                new Vector2(11f, -70f), new Vector2(48f, 28f), TextAnchor.MiddleCenter);
+            MakeText(card.transform, "50", 17, FontStyle.Bold, Hex("8FAFCB"),
+                new Vector2(183f, -70f), new Vector2(48f, 28f), TextAnchor.MiddleCenter);
+            MakeText(card.transform, "65+", 17, FontStyle.Bold, Hex("8FAFCB"),
+                new Vector2(355f, -70f), new Vector2(56f, 28f), TextAnchor.MiddleCenter);
+
             // ── Privacy pill ────────────────────────────────────────────────
-            var privacyPill = CreateCard("Privacy Note", card.transform, new Vector2(0, -110), new Vector2(700, 82), CardSoft, 24);
-            MakeText(privacyPill.transform, "●  We store an age range — never your birthday", 23,
-                FontStyle.Normal, Green, Vector2.zero, new Vector2(640, 58), TextAnchor.MiddleCenter);
+            var privacyPill = CreateCard("Privacy Note", card.transform, new Vector2(0, -132),
+                new Vector2(710, 72), Hex("1B4A70"), 24);
+            CreateImage("Privacy shield", privacyPill.transform, Green,
+                Centered(new Vector2(-310f, 0f), new Vector2(15f, 32f)), RoundedSprite(8)).raycastTarget = false;
+            MakeText(privacyPill.transform, "We save an age range — never your birthday", 21,
+                FontStyle.Normal, Cream, new Vector2(15f, 0f), new Vector2(625, 48), TextAnchor.MiddleCenter);
 
             // ── Continue ────────────────────────────────────────────────────
-            var continueButton = MakeButton(card.transform, "CONTINUE", new Vector2(0, -240),
-                new Vector2(700, 116), Cyan, Ink, 30, OnAgeStepContinue);
+            var continueButton = MakeButton(card.transform, "CONTINUE  ›", new Vector2(0, -258),
+                new Vector2(710, 108), Hex("FFB84D"), Ink, 30, OnAgeStepContinue);
+            var buttonImage = continueButton.GetComponent<Image>();
+            var buttonShadow = buttonImage.gameObject.AddComponent<Shadow>();
+            buttonShadow.effectColor = new Color(1f, 0.45f, 0.10f, 0.42f);
+            buttonShadow.effectDistance = new Vector2(0f, -7f);
+            buttonShadow.useGraphicAlpha = false;
+            CreateImage("Continue highlight", continueButton.transform, new Color(1f, 1f, 1f, 0.24f),
+                Centered(new Vector2(0f, 40f), new Vector2(630f, 7f)), RoundedSprite(4)).raycastTarget = false;
             continueButton.gameObject.AddComponent<ButtonGlow>();
+
+            OnAgeChanged(selectedAge);
         }
 
         /// <summary>Cyan slider — always cyan, tap-to-jump enabled.</summary>
@@ -313,13 +414,44 @@ namespace GravityHalfDead
         {
             selectedAge = Mathf.RoundToInt(value);
             ageStepValueText.text = selectedAge >= 65 ? "65+" : selectedAge.ToString();
+            string bandLabel;
+            Color bandColor;
             ageStepHintText.text = selectedAge switch
             {
-                < 13 => "Child experience · limited data and age-appropriate ads",
-                < 16 => "Teen experience · privacy-first personalization",
-                < 18 => "Older teen experience · standard safety controls",
-                _ => "Adult experience · full personalization controls"
+                < 13 => "Limited data and age-appropriate advertising",
+                < 16 => "Privacy-first personalization",
+                < 18 => "Standard safety controls",
+                _ => "Full personalization controls"
             };
+
+            if (selectedAge < 13)
+            {
+                bandLabel = "CHILD EXPERIENCE";
+                bandColor = Hex("FFD166");
+            }
+            else if (selectedAge < 16)
+            {
+                bandLabel = "TEEN EXPERIENCE";
+                bandColor = Hex("7BE0FF");
+            }
+            else if (selectedAge < 18)
+            {
+                bandLabel = "OLDER TEEN EXPERIENCE";
+                bandColor = Hex("B9A1FF");
+            }
+            else
+            {
+                bandLabel = "ADULT EXPERIENCE";
+                bandColor = Green;
+            }
+
+            if (ageStepBandText != null)
+            {
+                ageStepBandText.text = bandLabel;
+                ageStepBandText.color = bandColor;
+            }
+            if (ageStepBandBadge != null)
+                ageStepBandBadge.color = new Color(bandColor.r, bandColor.g, bandColor.b, 0.16f);
         }
 
         private async void OnAgeStepContinue()
@@ -358,10 +490,10 @@ namespace GravityHalfDead
         private void BuildCountryStep(Transform card)
         {
             // ── Title ───────────────────────────────────────────────────────
-            MakeText(card.transform, "WHERE ARE YOU FROM?", 31, FontStyle.Bold, Muted,
-                new Vector2(0, 330), new Vector2(760, 55), TextAnchor.MiddleCenter, 2);
-            MakeText(card.transform, "Choose your country. You can search by country name or code.",
-                22, FontStyle.Normal, Muted, new Vector2(0, 282), new Vector2(740, 50), TextAnchor.MiddleCenter);
+            MakeText(card.transform, "CHOOSE YOUR REGION", 33, FontStyle.Bold, Cream,
+                new Vector2(0, 337), new Vector2(760, 55), TextAnchor.MiddleCenter, 2);
+            MakeText(card.transform, "Used for regional availability and relevant game services.",
+                21, FontStyle.Normal, Hex("D6E8F7"), new Vector2(0, 292), new Vector2(740, 44), TextAnchor.MiddleCenter);
 
             // Restore a previously selected country when this screen is rebuilt.
             if (string.IsNullOrEmpty(selectedCountryCode))
@@ -371,9 +503,16 @@ namespace GravityHalfDead
             }
 
             // ── Closed dropdown field ───────────────────────────────────────
+            MakeText(card.transform, "COUNTRY OR REGION", 17, FontStyle.Bold, Cyan,
+                new Vector2(-300f, 244f), new Vector2(260f, 28f), TextAnchor.MiddleLeft, 2);
             var selector = CreateCard("Country Dropdown", card.transform,
-                new Vector2(0, 190), new Vector2(760, 94), Hex("0A1A2E"), 28);
-            AddSettingsOutline(selector.GetComponent<Image>(), Hex("24486B"), 1.4f);
+                new Vector2(0, 186), new Vector2(760, 98), Hex("0B2947"), 28);
+            var selectorShadow = selector.AddComponent<Shadow>();
+            selectorShadow.effectColor = new Color(0f, 0f, 0f, 0.32f);
+            selectorShadow.effectDistance = new Vector2(0f, -5f);
+            selectorShadow.useGraphicAlpha = false;
+            CreateImage("Country selector active rail", selector.transform, Cyan,
+                Centered(new Vector2(-375f, 0f), new Vector2(6f, 62f)), RoundedSprite(3)).raycastTarget = false;
 
             var selectorButton = selector.AddComponent<Button>();
             selectorButton.targetGraphic = selector.GetComponent<Image>();
@@ -388,9 +527,8 @@ namespace GravityHalfDead
             selectorButton.onClick.AddListener(ToggleCountryDropdown);
 
             var flagHolder = CreateCard("Selected Country Flag Holder", selector.transform,
-                new Vector2(-316, 0), new Vector2(68, 50), Hex("071421"), 10);
+                new Vector2(-316, 0), new Vector2(70, 52), Hex("061A2E"), 12);
             flagHolder.GetComponent<Image>().raycastTarget = false;
-            AddSettingsOutline(flagHolder.GetComponent<Image>(), Hex("2E5F7D"), 1f);
 
             var selectedFlagObject = new GameObject("Selected Country Flag");
             selectedFlagObject.transform.SetParent(flagHolder.transform, false);
@@ -407,22 +545,27 @@ namespace GravityHalfDead
                 Vector2.zero, new Vector2(62, 46), TextAnchor.MiddleCenter);
             countrySelectedFlagFallback.raycastTarget = false;
 
-            countrySelectedLabel = MakeText(selector.transform, "Select your country", 26, FontStyle.Bold, Cream,
+            countrySelectedLabel = MakeText(selector.transform, "Tap to choose", 26, FontStyle.Bold, Hex("AFC9E2"),
                 new Vector2(22, 0), new Vector2(560, 58), TextAnchor.MiddleLeft);
             countrySelectedLabel.raycastTarget = false;
 
-            countryDropdownArrow = MakeText(selector.transform, "▼", 24, FontStyle.Bold, Cyan,
+            countryDropdownArrow = MakeText(selector.transform, "+", 30, FontStyle.Bold, Cyan,
                 new Vector2(326, 0), new Vector2(62, 58), TextAnchor.MiddleCenter);
             countryDropdownArrow.raycastTarget = false;
 
             // ── Floating dropdown panel (hidden until selector is tapped) ───
             countryDropdownPanel = CreateCard("Country Dropdown Panel", card.transform,
-                new Vector2(0, -66), new Vector2(760, 408), Hex("081728"), 28);
-            AddSettingsOutline(countryDropdownPanel.GetComponent<Image>(), Hex("24486B"), 1.25f);
+                new Vector2(0, -60), new Vector2(760, 420), Hex("102F50"), 28);
+            var panelShadow = countryDropdownPanel.AddComponent<Shadow>();
+            panelShadow.effectColor = new Color(0f, 0f, 0f, 0.48f);
+            panelShadow.effectDistance = new Vector2(0f, -8f);
+            panelShadow.useGraphicAlpha = false;
+            CreateImage("Country dropdown top rail", countryDropdownPanel.transform, Cyan,
+                Centered(new Vector2(0f, 205f), new Vector2(660f, 6f)), RoundedSprite(3)).raycastTarget = false;
             countryDropdownPanel.transform.SetAsLastSibling();
 
             countrySearchInput = BuildCountrySearch(countryDropdownPanel.transform,
-                new Vector2(0, 156), new Vector2(700, 68));
+                new Vector2(0, 158), new Vector2(700, 72));
             countrySearchInput.onValueChanged.AddListener(OnCountrySearchChanged);
 
             // Keep the dropdown/search visible above the iOS/Android soft keyboard.
@@ -436,24 +579,29 @@ namespace GravityHalfDead
                 24f);
 
             BuildCountryScrollList(countryDropdownPanel.transform,
-                new Vector2(0, -14), new Vector2(700, 260));
+                new Vector2(0, -10), new Vector2(700, 266));
 
             countryResultCountText = MakeText(countryDropdownPanel.transform, "", 17, FontStyle.Normal,
-                Hex("6F88A5"), new Vector2(0, -172), new Vector2(680, 28), TextAnchor.MiddleCenter);
+                Hex("9CB7D0"), new Vector2(0, -180), new Vector2(680, 28), TextAnchor.MiddleCenter);
             countryResultCountText.raycastTarget = false;
 
             countryDropdownPanel.SetActive(false);
             countryDropdownOpen = false;
             RefreshCountrySelectorVisual();
 
-            // ── Buttons ─────────────────────────────────────────────────────
-            var backButton = MakeButton(card.transform, "BACK", new Vector2(-210, -370),
-                new Vector2(300, 90), Hex("163A61"), Muted, 24, OnCountryStepBack);
-            AddSettingsOutline(backButton.GetComponent<Image>(), Hex("2A5080"), 1f);
+            countrySelectionStatusText = MakeText(card.transform, "SELECT A REGION TO CONTINUE", 17,
+                FontStyle.Bold, Hex("89A7C3"), new Vector2(0f, 115f), new Vector2(700f, 30f),
+                TextAnchor.MiddleCenter, 2);
 
-            var confirmButton = MakeButton(card.transform, "CONFIRM", new Vector2(140, -370),
-                new Vector2(440, 90), Cyan, Ink, 28, OnCountryStepConfirm);
-            confirmButton.gameObject.AddComponent<ButtonGlow>();
+            // ── Buttons ─────────────────────────────────────────────────────
+            var backButton = MakeButton(card.transform, "‹  BACK", new Vector2(-210, -342),
+                new Vector2(300, 96), Hex("1B4A70"), Cream, 24, OnCountryStepBack);
+
+            countryConfirmButton = MakeButton(card.transform, "CONFIRM  ›", new Vector2(140, -342),
+                new Vector2(440, 96), Hex("435468"), Hex("A4B0BE"), 28, OnCountryStepConfirm);
+            countryConfirmButtonLabel = countryConfirmButton.GetComponentInChildren<Text>();
+            countryConfirmButton.gameObject.AddComponent<ButtonGlow>();
+            RefreshCountryConfirmState();
         }
 
         private void ToggleCountryDropdown()
@@ -483,7 +631,7 @@ namespace GravityHalfDead
             }
 
             if (countryDropdownArrow != null)
-                countryDropdownArrow.text = open ? "▲" : "▼";
+                countryDropdownArrow.text = open ? "−" : "+";
 
             if (open)
             {
@@ -503,12 +651,37 @@ namespace GravityHalfDead
             {
                 countrySelectedLabel.text = hasSelection
                     ? selectedCountryName
-                    : "Select your country";
-                countrySelectedLabel.color = hasSelection ? Cream : Muted;
+                    : "Tap to choose";
+                countrySelectedLabel.color = hasSelection ? Cream : Hex("AFC9E2");
             }
 
             ApplyCountryFlag(countrySelectedFlagImage, countrySelectedFlagFallback,
                 hasSelection ? selectedCountryCode : null);
+
+            RefreshCountryConfirmState();
+        }
+
+        private void RefreshCountryConfirmState()
+        {
+            bool ready = !string.IsNullOrEmpty(selectedCountryCode);
+            if (countryConfirmButton != null)
+            {
+                countryConfirmButton.interactable = ready;
+                var image = countryConfirmButton.GetComponent<Image>();
+                if (image != null)
+                    image.color = ready ? Hex("FFB84D") : Hex("435468");
+            }
+
+            if (countryConfirmButtonLabel != null)
+                countryConfirmButtonLabel.color = ready ? Ink : Hex("A4B0BE");
+
+            if (countrySelectionStatusText != null)
+            {
+                countrySelectionStatusText.text = ready
+                    ? "READY  •  " + selectedCountryCode
+                    : "SELECT A REGION TO CONTINUE";
+                countrySelectionStatusText.color = ready ? Green : Hex("89A7C3");
+            }
         }
 
         // ── Search bar ──────────────────────────────────────────────────────
@@ -523,9 +696,8 @@ namespace GravityHalfDead
             var bg = fieldObject.AddComponent<Image>();
             bg.sprite = RoundedSprite(26);
             bg.type = Image.Type.Sliced;
-            bg.color = Hex("0C2035");
+            bg.color = Hex("183E60");
             bg.raycastTarget = true;
-            AddSettingsOutline(bg, Hex("2B5878"), 1f);
 
             var input = fieldObject.AddComponent<InputField>();
             input.targetGraphic = bg;
@@ -540,7 +712,7 @@ namespace GravityHalfDead
             input.navigation = new Navigation { mode = Navigation.Mode.None };
 
             var searchBadge = CreateCard("Search Icon Badge", fieldObject.transform,
-                new Vector2(-size.x / 2f + 38, 0), new Vector2(46, 46), Hex("123653"), 16);
+                new Vector2(-size.x / 2f + 40, 0), new Vector2(48, 48), Hex("0A2946"), 16);
             searchBadge.GetComponent<Image>().raycastTarget = false;
             var searchGlyph = MakeText(searchBadge.transform, "⌕", 30, FontStyle.Bold, Cyan,
                 Vector2.zero, new Vector2(42, 42), TextAnchor.MiddleCenter);
@@ -552,8 +724,8 @@ namespace GravityHalfDead
             text.raycastTarget = false;
             input.textComponent = text;
 
-            var placeholder = MakeText(fieldObject.transform, "Search country or code…", 23, FontStyle.Italic,
-                Hex("6A819B"), new Vector2(48, 0), new Vector2(size.x - 126, 52), TextAnchor.MiddleLeft);
+            var placeholder = MakeText(fieldObject.transform, "Search by country or 2-letter code", 22, FontStyle.Italic,
+                Hex("9CB7D0"), new Vector2(48, 0), new Vector2(size.x - 126, 52), TextAnchor.MiddleLeft);
             placeholder.supportRichText = false;
             placeholder.raycastTarget = false;
             input.placeholder = placeholder;
@@ -597,7 +769,7 @@ namespace GravityHalfDead
             countryListContent.sizeDelta = Vector2.zero;
 
             var layout = content.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 6;
+            layout.spacing = 8;
             layout.childAlignment = TextAnchor.UpperCenter;
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
@@ -637,7 +809,7 @@ namespace GravityHalfDead
 
                 var row = CreateCard("Country " + code, countryListContent,
                     Vector2.zero, new Vector2(0, rowHeight),
-                    isSelected ? Hex("123650") : Hex("0C2035"), 18);
+                    isSelected ? Hex("18566A") : Hex("173A5C"), 18);
 
                 var le = row.AddComponent<LayoutElement>();
                 le.preferredHeight = rowHeight;
@@ -646,7 +818,7 @@ namespace GravityHalfDead
                 if (isSelected)
                 {
                     var accent = CreateCard("Selected Accent", row.transform,
-                        new Vector2(-342, 0), new Vector2(5, rowHeight - 14), Cyan, 3);
+                        new Vector2(-342, 0), new Vector2(6, rowHeight - 14), Green, 3);
                     accent.GetComponent<Image>().raycastTarget = false;
                 }
 
@@ -671,7 +843,7 @@ namespace GravityHalfDead
                 ApplyCountryFlag(flagImage, flagFallback, code);
 
                 var countryName = MakeText(row.transform, name, 23, FontStyle.Bold,
-                    isSelected ? Cyan : Cream,
+                    isSelected ? Color.white : Cream,
                     new Vector2(10, 7), new Vector2(540, 34), TextAnchor.MiddleLeft);
                 countryName.raycastTarget = false;
 
@@ -707,12 +879,12 @@ namespace GravityHalfDead
             if (matchCount == 0)
             {
                 var emptyRow = CreateCard("No Country Matches", countryListContent,
-                    Vector2.zero, new Vector2(0, 84), Hex("0C2035"), 18);
+                    Vector2.zero, new Vector2(0, 94), Hex("173A5C"), 18);
                 var emptyLayout = emptyRow.AddComponent<LayoutElement>();
                 emptyLayout.preferredHeight = 84;
                 emptyLayout.minHeight = 84;
-                var emptyText = MakeText(emptyRow.transform, "No countries found\nTry another name or 2-letter code",
-                    19, FontStyle.Normal, Muted, Vector2.zero, new Vector2(620, 66), TextAnchor.MiddleCenter);
+                var emptyText = MakeText(emptyRow.transform, "NO MATCHES YET\nTry a country name or 2-letter code",
+                    19, FontStyle.Normal, Hex("C7D9EA"), Vector2.zero, new Vector2(620, 72), TextAnchor.MiddleCenter);
                 emptyText.raycastTarget = false;
                 countryRowPool.Add(emptyRow);
             }
@@ -811,6 +983,7 @@ namespace GravityHalfDead
             selectedCountryCode = code;
             selectedCountryName = name;
             RefreshCountrySelectorVisual();
+            RefreshCountryConfirmState();
 
             if (countrySearchInput != null)
                 countrySearchInput.SetTextWithoutNotify("");
@@ -856,8 +1029,11 @@ namespace GravityHalfDead
 
             if (string.IsNullOrEmpty(selectedCountryCode))
             {
-                if (countrySelectedLabel != null)
-                    countrySelectedLabel.text = "<color=#FF795F>Please select a country</color>";
+                if (countrySelectionStatusText != null)
+                {
+                    countrySelectionStatusText.text = "CHOOSE A COUNTRY OR REGION FIRST";
+                    countrySelectionStatusText.color = Coral;
+                }
                 return;
             }
 

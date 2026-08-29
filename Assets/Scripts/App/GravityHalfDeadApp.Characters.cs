@@ -43,6 +43,7 @@ namespace GravityHalfDead
             }
 
             RefreshCharacterShowcase();
+            RefreshDiscCollectionUI();
         }
 
         private void PreviewCharacter(string avatarId)

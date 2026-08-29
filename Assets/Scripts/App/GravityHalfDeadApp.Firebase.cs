@@ -104,6 +104,7 @@ namespace GravityHalfDead
             if (!playerData.ContainsKey("selected_frame")) loginUpdate["selected_frame"] = "neon_recruit";
             if (!playerData.ContainsKey("robot_shards")) loginUpdate["robot_shards"] = 0L;
             if (!playerData.ContainsKey("ice_shards")) loginUpdate["ice_shards"] = 0L;
+            if (!playerData.ContainsKey("disc_shards")) loginUpdate["disc_shards"] = 0L;
             if (!playerData.ContainsKey("completed_runs")) loginUpdate["completed_runs"] = 0L;
             if (!playerData.ContainsKey("completed_missions")) loginUpdate["completed_missions"] = 0L;
             if (!playerData.ContainsKey("gravity_cores")) loginUpdate["gravity_cores"] = 0L;
@@ -116,6 +117,9 @@ namespace GravityHalfDead
             if (!playerData.ContainsKey("has_made_purchase")) loginUpdate["has_made_purchase"] = false;
             if (!playerData.ContainsKey("unlocked_characters"))
                 loginUpdate["unlocked_characters"] = new List<object> { "nova" };
+            if (!playerData.ContainsKey("selected_disc")) loginUpdate["selected_disc"] = "core_runner";
+            if (!playerData.ContainsKey("unlocked_discs"))
+                loginUpdate["unlocked_discs"] = new List<object> { "core_runner" };
             if (!playerData.ContainsKey("powerups")) loginUpdate["powerups"] = PowerupDictionary();
             if (!playerData.ContainsKey("booster_inventory"))
                 loginUpdate["booster_inventory"] = DefaultBoosterInventoryFirestoreMap();
@@ -161,8 +165,10 @@ namespace GravityHalfDead
             PopulateGameScreen(user);
             await StartPowerupRealtimeSyncAsync();
             await StartCharacterRealtimeSyncAsync();
+            await StartDiscRealtimeSyncAsync();
             await StartShopRealtimeSyncAsync();
             await StartMissionRealtimeSyncAsync();
+            await StartAchievementRealtimeSyncAsync();
             StartHomePlayerFirestoreSync();
             await ShowScreenAsync("Game");
         }
@@ -196,10 +202,13 @@ namespace GravityHalfDead
                 { "consecutive_login_days", 1L },
                 { "robot_shards", 0L },
                 { "ice_shards", 0L },
+                { "disc_shards", 0L },
                 { "has_made_purchase", false },
                 { "selected_character", "nova" },
                 { "selected_frame", "neon_recruit" },
                 { "unlocked_characters", new List<object> { "nova" } },
+                { "selected_disc", "core_runner" },
+                { "unlocked_discs", new List<object> { "core_runner" } },
                 { "powerups", new Dictionary<string, object>
                     {
                         { "magnet", 0L },
@@ -358,6 +367,7 @@ namespace GravityHalfDead
             _ = SetRealtimeHighScoreAsync(bootstrapState.EndlessHighScore);
             ReportBasicRunMissionProgress(score, walletCoins,
                 Math.Max(0L, (long)Math.Round(distanceMeters)));
+            RecordAchievementRunTotals(walletCoins, Math.Max(0L, (long)Math.Round(distanceMeters)));
 
             if (firestore == null || auth == null || auth.CurrentUser == null)
                 return;
@@ -407,8 +417,10 @@ namespace GravityHalfDead
         {
             StopPowerupRealtimeSync();
             StopCharacterRealtimeSync();
+            StopDiscRealtimeSync();
             StopShopRealtimeSync();
             StopMissionRealtimeSync();
+            StopAchievementRealtimeSync();
             StopHomePlayerFirestoreSync();
             StopStoreCatalogSync();
             _ = SyncPendingPlaytimeAsync();

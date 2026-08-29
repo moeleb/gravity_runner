@@ -15,11 +15,12 @@ namespace GravityHalfDead
     public sealed class GravityIapStoreProvider : MonoBehaviour
     {
         private readonly HashSet<string> configuredProductIds = new();
+        private readonly Dictionary<string, ProductType> configuredProductTypes = new();
         private readonly Dictionary<string, Product> products = new();
+        private readonly Dictionary<string, Action<string, string>> localizedPriceCallbacks = new();
+        private readonly Dictionary<string, Func<string, string, string, string, Task<bool>>> fulfillmentCallbacks = new();
+        private readonly Dictionary<string, Action<string, string, bool>> statusCallbacks = new();
         private StoreController storeController;
-        private Action<string, string> localizedPriceCallback;
-        private Func<string, string, string, string, Task<bool>> fulfillmentCallback;
-        private Action<string, string, bool> statusCallback;
         private bool initialized;
         private bool connected;
         private bool purchaseHistoryFetched;
@@ -28,16 +29,30 @@ namespace GravityHalfDead
             Action<string, string> onLocalizedPrice,
             Func<string, string, string, string, Task<bool>> onFulfill,
             Action<string, string, bool> onStatus)
-        {
-            localizedPriceCallback = onLocalizedPrice;
-            fulfillmentCallback = onFulfill;
-            statusCallback = onStatus;
+            => ConfigureProducts(productIds, ProductType.Consumable, onLocalizedPrice, onFulfill, onStatus);
 
+        public void ConfigureNonConsumables(IEnumerable<string> productIds,
+            Action<string, string> onLocalizedPrice,
+            Func<string, string, string, string, Task<bool>> onFulfill,
+            Action<string, string, bool> onStatus)
+            => ConfigureProducts(productIds, ProductType.NonConsumable, onLocalizedPrice, onFulfill, onStatus);
+
+        private void ConfigureProducts(IEnumerable<string> productIds, ProductType productType,
+            Action<string, string> onLocalizedPrice,
+            Func<string, string, string, string, Task<bool>> onFulfill,
+            Action<string, string, bool> onStatus)
+        {
             var changed = false;
             foreach (var productId in productIds ?? Array.Empty<string>())
             {
-                if (!string.IsNullOrWhiteSpace(productId))
-                    changed |= configuredProductIds.Add(productId.Trim());
+                if (string.IsNullOrWhiteSpace(productId))
+                    continue;
+                var id = productId.Trim();
+                changed |= configuredProductIds.Add(id);
+                configuredProductTypes[id] = productType;
+                localizedPriceCallbacks[id] = onLocalizedPrice;
+                fulfillmentCallbacks[id] = onFulfill;
+                statusCallbacks[id] = onStatus;
             }
 
             if (!initialized)
@@ -57,7 +72,7 @@ namespace GravityHalfDead
         {
             if (!CanPurchase(productId))
             {
-                statusCallback?.Invoke(productId, "PRODUCT IS NOT AVAILABLE FROM THIS STORE", true);
+                DispatchStatus(productId, "PRODUCT IS NOT AVAILABLE FROM THIS STORE", true);
                 return;
             }
             storeController.PurchaseProduct(productId);
@@ -78,13 +93,13 @@ namespace GravityHalfDead
             storeController.OnPurchasesFetchFailed += OnPurchasesFetchFailed;
             try
             {
-                statusCallback?.Invoke(string.Empty, "CONNECTING TO YOUR APP STORE", false);
+                DispatchStatus(string.Empty, "CONNECTING TO YOUR APP STORE", false);
                 await storeController.Connect();
             }
             catch (Exception exception)
             {
                 connected = false;
-                statusCallback?.Invoke(string.Empty,
+                DispatchStatus(string.Empty,
                     "APP STORE CONNECTION DELAYED · " + exception.Message, true);
             }
         }
@@ -92,14 +107,14 @@ namespace GravityHalfDead
         private void OnStoreConnected()
         {
             connected = true;
-            statusCallback?.Invoke(string.Empty, "APP STORE CONNECTED · LOADING LOCAL PRICES", false);
+            DispatchStatus(string.Empty, "APP STORE CONNECTED · LOADING LOCAL PRICES", false);
             FetchConfiguredProducts();
         }
 
         private void OnStoreDisconnected(StoreConnectionFailureDescription description)
         {
             connected = false;
-            statusCallback?.Invoke(string.Empty,
+            DispatchStatus(string.Empty,
                 "APP STORE OFFLINE · " + (description?.message ?? "TRY AGAIN LATER"), true);
         }
 
@@ -108,7 +123,8 @@ namespace GravityHalfDead
             if (!connected || configuredProductIds.Count == 0)
                 return;
             var definitions = configuredProductIds
-                .Select(productId => new ProductDefinition(productId, ProductType.Consumable))
+                .Select(productId => new ProductDefinition(productId,
+                    configuredProductTypes.TryGetValue(productId, out var type) ? type : ProductType.Consumable))
                 .ToList();
             storeController.FetchProducts(definitions);
         }
@@ -121,11 +137,13 @@ namespace GravityHalfDead
                     continue;
                 products[product.definition.id] = product;
                 if (!string.IsNullOrWhiteSpace(product.metadata?.localizedPriceString))
-                    localizedPriceCallback?.Invoke(product.definition.id,
-                        product.metadata.localizedPriceString);
+                {
+                    if (localizedPriceCallbacks.TryGetValue(product.definition.id, out var callback))
+                        callback?.Invoke(product.definition.id, product.metadata.localizedPriceString);
+                }
             }
 
-            statusCallback?.Invoke(string.Empty, "LOCALIZED APP-STORE PRICES READY", false);
+            DispatchStatus(string.Empty, "LOCALIZED APP-STORE PRICES READY", false);
             if (!purchaseHistoryFetched)
             {
                 purchaseHistoryFetched = true;
@@ -135,16 +153,17 @@ namespace GravityHalfDead
 
         private void OnProductsFetchFailed(ProductFetchFailed failure)
         {
-            statusCallback?.Invoke(string.Empty,
+            DispatchStatus(string.Empty,
                 "PRODUCT CATALOG UNAVAILABLE · " + failure.FailureReason, true);
         }
 
         private async void OnPurchasePending(PendingOrder order)
         {
             var product = FirstProduct(order);
-            if (product == null || fulfillmentCallback == null)
+            if (product == null || !fulfillmentCallbacks.TryGetValue(product.definition.id, out var fulfillmentCallback)
+                                || fulfillmentCallback == null)
             {
-                statusCallback?.Invoke(string.Empty, "PURCHASE DATA WAS INCOMPLETE", true);
+                DispatchStatus(string.Empty, "PURCHASE DATA WAS INCOMPLETE", true);
                 return;
             }
 
@@ -157,18 +176,18 @@ namespace GravityHalfDead
                     product.metadata?.localizedPriceString ?? string.Empty);
                 if (!persisted)
                 {
-                    statusCallback?.Invoke(productId,
+                    DispatchStatus(productId,
                         "PURCHASE SAVED BY STORE · FIREBASE SYNC WILL RETRY", true);
                     return;
                 }
 
                 storeController.ConfirmPurchase(order);
-                statusCallback?.Invoke(productId, "PURCHASE ADDED TO YOUR ACCOUNT", false);
+                DispatchStatus(productId, "PURCHASE ADDED TO YOUR ACCOUNT", false);
             }
             catch (Exception exception)
             {
                 // Do not confirm. Unity IAP will redeliver the pending consumable later.
-                statusCallback?.Invoke(productId,
+                DispatchStatus(productId,
                     "PURCHASE SYNC WILL RETRY · " + exception.Message, true);
             }
         }
@@ -176,25 +195,38 @@ namespace GravityHalfDead
         private void OnPurchaseConfirmed(Order order)
         {
             var product = FirstProduct(order);
-            statusCallback?.Invoke(product?.definition.id ?? string.Empty,
+            DispatchStatus(product?.definition.id ?? string.Empty,
                 "PURCHASE CONFIRMED", false);
         }
 
         private void OnPurchaseFailed(FailedOrder order)
         {
             var product = FirstProduct(order);
-            statusCallback?.Invoke(product?.definition.id ?? string.Empty,
+            DispatchStatus(product?.definition.id ?? string.Empty,
                 "PURCHASE NOT COMPLETED · " + order.FailureReason, true);
         }
 
         private void OnPurchasesFetched(Orders orders)
         {
-            statusCallback?.Invoke(string.Empty, "STORE PURCHASES SYNCHRONIZED", false);
+            DispatchStatus(string.Empty, "STORE PURCHASES SYNCHRONIZED", false);
         }
 
         private void OnPurchasesFetchFailed(PurchasesFetchFailureDescription description)
         {
-            statusCallback?.Invoke(string.Empty, "PURCHASE HISTORY SYNC DELAYED", true);
+            DispatchStatus(string.Empty, "PURCHASE HISTORY SYNC DELAYED", true);
+        }
+
+        private void DispatchStatus(string productId, string message, bool failed)
+        {
+            if (!string.IsNullOrWhiteSpace(productId)
+                && statusCallbacks.TryGetValue(productId, out var productCallback))
+            {
+                productCallback?.Invoke(productId, message, failed);
+                return;
+            }
+
+            foreach (var callback in statusCallbacks.Values.Distinct())
+                callback?.Invoke(productId, message, failed);
         }
 
         private static Product FirstProduct(Order order)

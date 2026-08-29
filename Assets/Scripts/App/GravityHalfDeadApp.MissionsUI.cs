@@ -56,9 +56,10 @@ namespace GravityHalfDead
                 FontStyle.Bold, Muted, new Vector2(0f, -475f), new Vector2(900f, 34f),
                 TextAnchor.MiddleCenter, 1);
 
-            missionAchievementsContent = new GameObject("Achievements tab · intentionally empty");
+            missionAchievementsContent = new GameObject("Achievements tab · all 17 tiers");
             missionAchievementsContent.transform.SetParent(gameMissionsContent.transform, false);
             Stretch(missionAchievementsContent.AddComponent<RectTransform>());
+            BuildAchievementPanel(missionAchievementsContent.transform);
 
             ShowMissionSection(true);
             gameMissionsContent.SetActive(false);
@@ -228,6 +229,13 @@ namespace GravityHalfDead
             SetMissionTabPalette(achievementsTabButton, !showMissions, NeonPurple);
             if (showMissions)
                 RefreshMissionUI();
+            else
+            {
+                ResetAchievementScroll();
+                RefreshAchievementUI();
+                if (realtimeAchievementPlayerReference == null)
+                    _ = StartAchievementRealtimeSyncAsync();
+            }
         }
 
         private static void SetMissionTabPalette(Button button, bool active, Color accent)

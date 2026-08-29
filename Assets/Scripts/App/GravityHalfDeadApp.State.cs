@@ -39,11 +39,14 @@ namespace GravityHalfDead
             public long ConsecutiveLoginDays = 1;
             public long RobotShards;
             public long IceShards;
+            public long DiscShards;
             public bool RemoveAds;
             public bool HasMadePurchase;
             public string SelectedCharacter = "nova";
+            public string SelectedDisc = "core_runner";
             public string SelectedFrame = "neon_recruit";
             public readonly HashSet<string> UnlockedCharacters = new() { "nova" };
+            public readonly HashSet<string> UnlockedDiscs = new() { "core_runner" };
             public readonly int[] PowerupLevels = new int[PowerupIds.Length];
             public string CountryCode = "";
             public string CountryName = "";
@@ -71,18 +74,23 @@ namespace GravityHalfDead
                     ConsecutiveLoginDays = LongValue(values, "consecutive_login_days", 1),
                     RobotShards = LongValue(values, "robot_shards", 0),
                     IceShards = LongValue(values, "ice_shards", 0),
+                    DiscShards = Math.Max(0L, LongValue(values, "disc_shards", 0L)),
                     RemoveAds = BoolValue(values, "remove_ads", false),
                     HasMadePurchase = BoolValue(values, "has_made_purchase", false),
                     SelectedCharacter = StringValue(values, "selected_character", "nova"),
+                    SelectedDisc = StringValue(values, "selected_disc", "core_runner"),
                     SelectedFrame = StringValue(values, "selected_frame", "neon_recruit"),
                     CountryCode = StringValue(values, "country_code", ""),
                     CountryName = StringValue(values, "country_name", "")
                 };
                 state.ScoreMultiplier = ScoreMultiplierForCompletedMissions(state.CompletedMissions);
                 ApplyUnlockedCharacters(state, values);
+                ApplyUnlockedDiscs(state, values);
                 ApplyPowerupLevels(state, values);
                 if (!state.UnlockedCharacters.Contains(state.SelectedCharacter))
                     state.SelectedCharacter = "nova";
+                if (!state.UnlockedDiscs.Contains(state.SelectedDisc))
+                    state.SelectedDisc = "core_runner";
                 return state;
             }
 
@@ -123,6 +131,19 @@ namespace GravityHalfDead
                 {
                     var level = LongValue(powerups, PowerupIds[i], 0L);
                     state.PowerupLevels[i] = Mathf.Clamp((int)level, 0, PowerupMaxLevel(i));
+                }
+            }
+
+            private static void ApplyUnlockedDiscs(BootstrapState state, IDictionary<string, object> values)
+            {
+                if (!values.TryGetValue("unlocked_discs", out var raw) || raw is string
+                    || raw is not System.Collections.IEnumerable collection)
+                    return;
+                foreach (var value in collection)
+                {
+                    var id = value?.ToString();
+                    if (!string.IsNullOrWhiteSpace(id) && Array.IndexOf(DiscIds, id) >= 0)
+                        state.UnlockedDiscs.Add(id);
                 }
             }
         }

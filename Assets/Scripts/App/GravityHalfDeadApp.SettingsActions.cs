@@ -499,8 +499,10 @@ namespace GravityHalfDead
             settingsAvatarLoadedUrl = string.Empty;
             StopPowerupRealtimeSync();
             StopCharacterRealtimeSync();
+            StopDiscRealtimeSync();
             StopShopRealtimeSync();
             StopMissionRealtimeSync();
+            StopAchievementRealtimeSync();
             StopHomePlayerFirestoreSync();
             if (auth != null)
                 auth.SignOut();

@@ -609,6 +609,7 @@ namespace GravityHalfDead
             if (diedWithinFirst60Seconds)
                 updates.Add(new MissionProgressUpdate("die_within_60_seconds", 1L, true));
             _ = ApplyMissionProgressAsync(updates.Where(update => update.Value > 0L).ToArray());
+            RecordAchievementMagnetCoins(magnetCoins);
         }
 
         public void RecordMissionReviveByAd()

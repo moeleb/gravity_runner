@@ -2,6 +2,7 @@
 
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onValueWritten } = require("firebase-functions/v2/database");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -15,6 +16,40 @@ const smtpPass = defineSecret("SMTP_PASS");
 const supportFrom = defineSecret("SUPPORT_FROM");
 const supportRecipient = "mkanafani40@gmail.com";
 const maximumAttachmentBytes = 10 * 1024 * 1024;
+const {
+  computeAchievementUpdates,
+  fallbackAchievementCatalog,
+  normalizeAchievementCatalog,
+} = require("./achievement-engine");
+
+async function loadAchievementCatalog() {
+  const snapshot = await admin.database().ref("achievementCatalog").get();
+  if (!snapshot.exists()) return fallbackAchievementCatalog;
+  const normalized = normalizeAchievementCatalog(snapshot.val());
+  if (normalized === fallbackAchievementCatalog)
+    console.warn("achievementCatalog is incomplete or invalid; using bundled fallback");
+  return normalized;
+}
+
+/**
+ * Server-authoritative achievement evaluator. Gameplay writes only raw counters
+ * and upgrade state. This trigger owns completed-tier state, badge unlocks and
+ * the pending collection event consumed by Unity's animation.
+ */
+exports.syncAchievementProgress = onValueWritten({
+  ref: "/players/{uid}",
+  region: "us-central1",
+  instance: "gravity-half-dead-default-rtdb",
+}, async (event) => {
+  if (!event.data.after.exists()) return;
+  const player = event.data.after.val() || {};
+  const now = Date.now();
+  const serverAchievementCatalog = await loadAchievementCatalog();
+  const updates = computeAchievementUpdates(player, serverAchievementCatalog, now);
+
+  if (Object.keys(updates).length === 0) return;
+  await event.data.after.ref.update(updates);
+});
 
 /**
  * Counts the first creation of each idempotent user purchase record and keeps
